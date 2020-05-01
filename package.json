@@ -7,7 +7,9 @@
   "scripts": {
     "lint": "npx eslint *.js test/**/*.js",
     "lintfix": "npx eslint --fix *.js test/**/*.js",
-    "test": "npx mocha"
+    "test": "npx mocha",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "keywords": [
     "haraka",
@@ -37,6 +39,8 @@
     "async": "^2.1.2",
     "haraka-constants": "*",
     "ldapjs": "^1.0.1",
-    "mocha": "*"
-  }
+    "mocha": "*",
+    "snyk": "^1.316.1"
+  },
+  "snyk": true
 }
