@@ -4,7 +4,9 @@
 
 - config: comment out default server entries, fixes #9
 - doc(README): update doc badge URL #8
-- test: 
+- test: skip pool shutdown test, it interferes with other tests
+- ci: update tests to use LTS node versions
+- test: improve macports setup script
 
 #### 1.1.0 - 2023-04-26
 

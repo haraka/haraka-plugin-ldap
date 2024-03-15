@@ -20,7 +20,7 @@ function _set_up (done) {
         notes: {
             ldappool : new ldappool.LdapPool({
                 main : {
-                    server : [ 'ldap://127.0.0.1:3389' ],
+                    server : [ 'ldap://localhost:3389' ],
                     binddn : this.user.dn,
                     bindpw : this.user.password,
                     basedn : 'dc=example,dc=com'
