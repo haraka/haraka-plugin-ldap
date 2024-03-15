@@ -23,15 +23,15 @@ const testCfg = {
 Object.freeze(testCfg)
 
 function _set_up () {
-    this.user = testUser;
-    this.cfg = testCfg;
+    this.user = JSON.parse(JSON.stringify(testUser));
+    this.cfg = JSON.parse(JSON.stringify(testCfg))
 }
 
 describe('_set_config', () => {
     beforeEach(_set_up);
 
-    it('defaults', (done) => {
-        const pool = new ldappool.LdapPool(testCfg);
+    it('defaults', function (done) {
+        const pool = new ldappool.LdapPool(this.cfg);
         const config = pool._set_config();
         assert.equal(pool._set_config().toString(), pool._set_config({}).toString());
         assert.equal(['ldap://localhost:389'].toString(), config.servers.toString());
@@ -45,8 +45,8 @@ describe('_set_config', () => {
         done()
     })
 
-    it('userdef', () => {
-        const pool = new ldappool.LdapPool(testCfg);
+    it('userdef', function () {
+        const pool = new ldappool.LdapPool(this.cfg);
         const cfg = { main : {
             server : 'testserver',
             timeout : 10000,
@@ -82,14 +82,14 @@ describe('_get_ldapjs_config', function () {
     })
 
     it('userdef', function (done) {
-        const cfg = Object.assign({}, testCfg)
-        cfg.main.server = [ 'ldap://127.0.0.1:3389' ];
+        const cfg = Object.assign({}, this.cfg)
+        cfg.main.server = [ 'ldap://localhost:3389' ];
         cfg.main.timeout = 42;
         cfg.main.tls_rejectUnauthorized = true;
         cfg.main.ldap_pool_size = 20;
         const pool = new ldappool.LdapPool(cfg);
         const config = pool._get_ldapjs_config();
-        assert.equal('ldap://127.0.0.1:3389', config.url);
+        assert.equal('ldap://localhost:3389', config.url);
         assert.equal(42, config.timeout);
         assert.equal(true, config.tlsOptions.rejectUnauthorized);
         done();
@@ -108,7 +108,10 @@ describe('_create_client', function () {
             assert.equal(undefined, client._starttls);
             client.bind(user.dn, user.password, function (err2) {
                 assert.ifError(err2)
-                done();
+                client.unbind((err3) => {
+                    if (err3) console.error(err3)
+                    done()
+                })
             });
         });
     })
@@ -120,7 +123,10 @@ describe('_create_client', function () {
         pool._create_client(function (err, client) {
             assert.ifError(err);
             assert.ok(client._starttls.success);
-            done();
+            client.unbind((err2) => {
+                if (err2) console.error(err2)
+                done();
+            })
         });
     })
 })
@@ -156,26 +162,27 @@ describe('_bind_default', function () {
         });
     })
 
-    it('bind with no binddn / bindpw', (done) => {
-        const cfg = JSON.parse(JSON.stringify(testCfg))
-        cfg.main.binddn = undefined;
-        cfg.main.bindpw = undefined;
+    it('bind with no binddn / bindpw', function (done) {
+        this.cfg.main.binddn = undefined;
+        this.cfg.main.bindpw = undefined;
 
-        const pool = new ldappool.LdapPool(cfg);
+        const pool = new ldappool.LdapPool(this.cfg);
         pool._bind_default((err, client) => {
             assert.equal(false, client.connected);
             done();
         })
     })
 
-    it('bind with invalid binddn / bindpw', (done) => {
-        const cfg = JSON.parse(JSON.stringify(testCfg))
-        cfg.main.binddn = 'invalid';
-        cfg.main.bindpw = 'invalid';
-        const pool = new ldappool.LdapPool(cfg);
+    it('bind with invalid binddn / bindpw', function (done) {
+        this.cfg.main.binddn = 'invalid';
+        this.cfg.main.bindpw = 'invalid';
+        const pool = new ldappool.LdapPool(this.cfg);
         pool._bind_default((err, client) => {
             assert.equal('InvalidDnSyntaxError', err.name);
-            done();
+            client.unbind((err2) => {
+                assert.ifError(err2)
+                done();
+            })
         });
     })
 })
@@ -183,25 +190,24 @@ describe('_bind_default', function () {
 describe('get', () => {
     beforeEach(_set_up);
 
-    it('test connection validity and pooling', (done) => {
-        const pool = new ldappool.LdapPool(testCfg);
+    it('test connection validity and pooling', function (done) {
+        const pool = new ldappool.LdapPool(this.cfg);
         assert.equal(0, pool.pool.servers.length);
+
         pool.get((err, client) => {
             assert.equal(null, err);
             assert.equal(1, pool.pool.servers.length);
-            assert.equal('ldap://localhost:3389', client?.url?.href);
+            assert.equal('ldap://localhost:3389', client?.urls[0].href);
             pool.get((err2, client2) => {
                 assert.equal(null, err2);
                 assert.equal(2, pool.pool.servers.length);
-                assert.equal('ldaps://localhost:3636', client2?.url?.href);
+                assert.equal('ldaps://localhost:3636', client2?.urls[0].href);
                 pool.get((err3, client3) => {
                     assert.equal(2, pool.pool.servers.length);
-                    assert.equal('ldap://localhost:3389', client3?.url?.href);
+                    assert.equal('ldap://localhost:3389', client3?.urls[0].href);
                     done();
                 })
             })
         })
     })
-
-    after(_set_up)
 })

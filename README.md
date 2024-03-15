@@ -17,7 +17,7 @@ The following options are configurable:
 
 ### Main section
 
-* `server`: *optional*, default: `server[]=ldap://localhost:389`
+* `server`: *required*, default: none.
 Specify LDAP server addresses.
 This is an array of *url* from [ldapjs](http://ldapjs.org/client.html).
 Apply multiple server[] values for some simple load-balancing.
