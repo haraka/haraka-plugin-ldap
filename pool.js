@@ -8,11 +8,8 @@ class LdapPool {
         this.pool = { 'servers': [] };
     }
 
-    _set_config (config) {
-        if (config === undefined)
-            config = {};
-        if (config.main === undefined)
-            config.main = {};
+    _set_config (config = {}) {
+        if (config.main === undefined) config.main = {};
         this.config = {
             servers: config.main.server || ['ldap://localhost:389'],
             timeout: config.main.timeout,
@@ -51,12 +48,10 @@ class LdapPool {
             console.error(err)
         })
 
-        if (!this.config.tls_enabled)
-            return next(null, client);
+        if (!this.config.tls_enabled) return next(null, client);
 
         client.starttls({}, null, (err) => {
-            if (err)
-                return next(err);
+            if (err) return next(err);
             next(null, client);
         });
     }

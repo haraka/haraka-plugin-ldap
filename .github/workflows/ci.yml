@@ -11,16 +11,16 @@ jobs:
     uses: haraka/.github/.github/workflows/lint.yml@master
 
   test:
-    needs: lint
+    needs: [ lint, get-lts ]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        node-version: [ 16, 18 ]
+        node-version: ${{ fromJson(needs.get-lts.outputs.lts) }}
       fail-fast: false
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
       with:
         node-version: ${{ matrix.node-version }}
@@ -29,18 +29,28 @@ jobs:
     - run: npm test
 
   # test-win:
-  #   needs: lint
+  #   needs: [ lint, get-lts ]
   #   runs-on: ${{ matrix.os }}
   #   strategy:
   #     matrix:
   #       os: [ windows-latest ]
-  #       node-version: [ 16, 18 ]
+  #       node-version: node-version: ${{ fromJson(needs.get-lts.outputs.lts) }}
   #     fail-fast: false
   #   steps:
-  #   - uses: actions/checkout@v3
-  #   - uses: actions/setup-node@v3
+  #   - uses: actions/checkout@v4
+  #   - uses: actions/setup-node@v4
   #     name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
   #     with:
   #       node-version: ${{ matrix.node-version }}
   #   - run: npm install
   #   - run: npm test
+
+  get-lts:
+     runs-on: ubuntu-latest
+     steps:
+       - id: get
+         uses: msimerson/node-lts-versions@v1
+     outputs:
+       active: ${{ steps.get.outputs.active }}
+       lts:    ${{ steps.get.outputs.lts }}
+       min:    ${{ steps.get.outputs.min }}

@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-ldap",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Haraka plugin for LDAP",
   "main": "index.js",
   "directories": {},
@@ -29,10 +29,10 @@
   "license": "MIT",
   "devDependencies": {
     "btoa": "*",
-    "eslint": "8",
+    "eslint": "8.57.0",
     "eslint-plugin-haraka": "*",
     "haraka-test-fixtures": "*",
-    "mocha": "9"
+    "mocha": "10.3.0"
   },
   "dependencies": {
     "address-rfc2821": "*",

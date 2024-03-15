@@ -1,12 +1,19 @@
 #!/bin/sh
 
-/usr/bin/sed -i -e '/^server/ s/:389/:3389/' -e 's/^server.*:636$/:3636/' config/ldap.ini
-if [ ! -d "/var/tmp/slapd" ]; then mkdir /var/tmp/slapd; fi
-rm -r /var/tmp/slapd/* || exit
+set -e
 
-/opt/local/sbin/slapadd -n 0 -F /var/tmp/slapd -l test/fixtures/macosx/slapd.ldif || exit
+/usr/bin/sed -i.bak -e '/^server/ s/:389/:3389/' -e '/^server/ s/:636/:3636/' test/config/ldap.ini
+if [ -d "/var/tmp/slapd" ]; then rm -rf /var/tmp/slapd; fi
+if [ ! -d /var/run/slapd ]; then mkdir /var/run/slapd; fi
+mkdir /var/tmp/slapd
 
-/opt/local/libexec/slapd -f test/fixtures/macosx/slapd.conf -h "ldap://localhost:3389 ldaps://localhost:3636" &
+if [ ! -x /opt/local/sbin/slapadd ]; then
+	sudo port install openldap
+fi
+
+/opt/local/sbin/slapadd -n 0 -F /var/tmp/slapd -l test/fixtures/macports/slapd.ldif
+
+/opt/local/libexec/slapd -f test/fixtures/macports/slapd.conf -h "ldap://localhost:3389 ldaps://localhost:3636" &
 sleep 3
 
 /opt/local/bin/ldapadd -x -D "cn=admin,dc=example,dc=com" -w "rAR84,NZ=F" -H ldap://localhost:3389 -f test/env/testdata.ldif
