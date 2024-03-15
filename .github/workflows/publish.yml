@@ -11,6 +11,51 @@ env:
   CI: true
 
 jobs:
-  publish:
-    uses: haraka/.github/.github/workflows/publish.yml@master
-    secrets: inherit
+  build:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: sudo ./test/fixtures/linux/setup.sh
+      - run: npm test
+
+  publish-npm:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          registry-url: https://registry.npmjs.org/
+      - uses: actions/checkout@v4
+      - name: publish to NPM
+        run: npm publish --access=public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+  publish-gpr:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    environment: ghpm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          registry-url: https://npm.pkg.github.com/
+          scope: "@haraka"
+      - name: rename package with @haraka scope
+        run: node .release/npm/prepend-scope.cjs @haraka
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

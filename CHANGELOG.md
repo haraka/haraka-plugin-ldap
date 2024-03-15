@@ -1,5 +1,10 @@
 ### Unreleased
 
+
+### [1.1.2] - 2024-03-15
+
+- ci: customized publish script
+
 #### 1.1.1 - 2024-03-15
 
 - config: comment out default server entries, fixes #9
@@ -38,3 +43,4 @@
 - include all ops in config
 
 [1.1.1]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.1
+[1.1.2]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.2
