@@ -3,12 +3,12 @@
 const ldap = require('ldapjs');
 
 class LdapPool {
-    constructor (config) {
+    constructor(config) {
         this._set_config(config);
-        this.pool = { 'servers': [] };
+        this.pool = { servers: [] };
     }
 
-    _set_config (config = {}) {
+    _set_config(config = {}) {
         if (config.main === undefined) config.main = {};
         this.config = {
             servers: config.main.server || ['ldap://localhost:389'],
@@ -22,31 +22,31 @@ class LdapPool {
             aliases: config.aliases,
             authn: config.authn,
             authz: config.authz,
-            rcpt_to: config.rcpt_to
+            rcpt_to: config.rcpt_to,
         };
         return this.config;
     }
 
-    _get_ldapjs_config () {
+    _get_ldapjs_config() {
         const config = {
             url: this.config.servers.shift(),
-            timeout: this.config.timeout
+            timeout: this.config.timeout,
         };
         this.config.servers.push(config.url);
         if (this.config.tls_rejectUnauthorized !== undefined) {
             config.tlsOptions = {
-                rejectUnauthorized: this.config.tls_rejectUnauthorized
+                rejectUnauthorized: this.config.tls_rejectUnauthorized,
             };
         }
         return config;
     }
 
-    _create_client (next) {
+    _create_client(next) {
         const client = ldap.createClient(this._get_ldapjs_config());
 
         client.on('connectError', (err) => {
-            console.error(err)
-        })
+            console.error(err);
+        });
 
         if (!this.config.tls_enabled) return next(null, client);
 
@@ -56,9 +56,8 @@ class LdapPool {
         });
     }
 
-    close (next) {
-        if (this.pool.servers.length <= 0)
-            return next();
+    close(next) {
+        if (this.pool.servers.length <= 0) return next();
 
         while (this.pool.servers.length > 0) {
             this.pool.servers.shift().unbind();
@@ -66,25 +65,23 @@ class LdapPool {
         }
     }
 
-    _bind_default (next) {
+    _bind_default(next) {
         const cfg = this.config;
 
         this._create_client((err, client) => {
-            if (err)
-                return next(err);
+            if (err) return next(err);
 
             if (cfg.binddn && cfg.bindpw) {
                 client.bind(cfg.binddn, cfg.bindpw, (err2) => {
                     next(err2, client);
                 });
-            }
-            else {
+            } else {
                 next(null, client);
             }
         });
     }
 
-    get (next) {
+    get(next) {
         const pool = this.pool;
 
         if (pool.servers.length >= this.config.servers.length) {

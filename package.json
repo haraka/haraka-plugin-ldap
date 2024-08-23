@@ -1,12 +1,25 @@
 {
   "name": "haraka-plugin-ldap",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Haraka plugin for LDAP",
+  "files": [
+    "aliases.js",
+    "authn.js",
+    "authz.js",
+    "pool.js",
+    "rcpt_to.js",
+    "CHANGELOG.md",
+    "config",
+    "test"
+  ],
   "main": "index.js",
   "directories": {},
   "scripts": {
-    "lint": "npx eslint *.js test/*.js",
-    "lintfix": "npx eslint --fix *.js test/*.js",
+    "format": "npm run prettier:fix && npm run lint:fix",
+    "lint": "npx eslint@^8 *.js test/*.js",
+    "lint:fix": "npx eslint@^8 *.js test/*.js --fix",
+    "prettier": "npx prettier . --check",
+    "prettier:fix": "npx prettier . --write --log-level=warn",
     "test": "npx mocha --exit",
     "versions": "npx dependency-version-checker check"
   },
@@ -30,8 +43,8 @@
   "devDependencies": {
     "btoa": "*",
     "eslint": "8.57.0",
-    "eslint-plugin-haraka": "*",
-    "haraka-test-fixtures": "*",
+    "@haraka/eslint-config": "^1.1.2",
+    "haraka-test-fixtures": "^1.0.0",
     "mocha": "10.3.0"
   },
   "dependencies": {

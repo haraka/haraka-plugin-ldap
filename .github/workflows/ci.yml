@@ -1,32 +1,31 @@
 name: CI
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 env:
   CI: true
 
 jobs:
-
   lint:
     uses: haraka/.github/.github/workflows/lint.yml@master
 
   test:
-    needs: [ lint, get-lts ]
+    needs: [lint, get-lts]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
         node-version: ${{ fromJson(needs.get-lts.outputs.lts) }}
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install
-    - run: sudo ./test/fixtures/linux/setup.sh
-    - run: npm test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: sudo ./test/fixtures/linux/setup.sh
+      - run: npm test
 
   # test-win:
   #   needs: [ lint, get-lts ]
@@ -46,11 +45,11 @@ jobs:
   #   - run: npm test
 
   get-lts:
-     runs-on: ubuntu-latest
-     steps:
-       - id: get
-         uses: msimerson/node-lts-versions@v1
-     outputs:
-       active: ${{ steps.get.outputs.active }}
-       lts:    ${{ steps.get.outputs.lts }}
-       min:    ${{ steps.get.outputs.min }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: get
+        uses: msimerson/node-lts-versions@v1
+    outputs:
+      active: ${{ steps.get.outputs.active }}
+      lts: ${{ steps.get.outputs.lts }}
+      min: ${{ steps.get.outputs.min }}
