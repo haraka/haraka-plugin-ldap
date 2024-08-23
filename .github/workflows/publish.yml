@@ -26,7 +26,7 @@ jobs:
       - run: npm test
 
   publish-npm:
-    needs: [ build ]
+    needs: [build]
     runs-on: ubuntu-latest
     environment: npm
     steps:
@@ -40,7 +40,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
   publish-gpr:
-    needs: [ build ]
+    needs: [build]
     runs-on: ubuntu-latest
     environment: ghpm
     permissions:
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           registry-url: https://npm.pkg.github.com/
-          scope: "@haraka"
+          scope: '@haraka'
       - name: rename package with @haraka scope
         run: node .release/npm/prepend-scope.cjs @haraka
       - run: npm publish
