@@ -1,6 +1,10 @@
 ### Unreleased
 
 
+### [1.1.3] - 2024-08-23
+
+- fix: always unbind after bind, fixes #12
+
 ### [1.1.2] - 2024-03-15
 
 - ci: customized publish script
@@ -29,11 +33,9 @@
 - test: add fixtures for setting up slapd on macosx and linux
 - doc(README): update with GHA badge
 
-
 #### 1.0.2 - 2017-09-30
 
 - check_rcpt must return next(ok) if a valid recipient was found
-
 
 #### 1.0.2 - 2016-12-10
 
@@ -44,3 +46,4 @@
 
 [1.1.1]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.2
+[1.1.3]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.3

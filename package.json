@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-ldap",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Haraka plugin for LDAP",
   "main": "index.js",
   "directories": {},

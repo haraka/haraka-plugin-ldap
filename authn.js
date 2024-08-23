@@ -16,12 +16,13 @@ exports._verify_user = (userdn, passwd, cb, connection) => {
         if (err) return onError(err);
 
         client.bind(userdn, passwd, (err2) => {
+            client.unbind();
+
             if (err2) {
                 connection.logdebug(`Login failed, could not bind ${ util.inspect(userdn) }: ${ util.inspect(err)}`);
                 return cb(false)
             }
 
-            client.unbind();
             cb(true);
         })
     })
