@@ -1,4 +1,13 @@
+# Changelog
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/).
+
 ### Unreleased
+
+### [1.1.4] - 2025-01-26
+
+- prettier: move config into package.json
+- dep(eslint): upgrade to v9
 
 ### [1.1.3] - 2024-08-23
 
@@ -48,6 +57,8 @@
 - fixed wrong default attribute there
 - include all ops in config
 
+[1.1.0]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.0
 [1.1.1]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.1
-[1.1.2]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.2
-[1.1.3]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/1.1.3
+[1.1.2]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.2
+[1.1.3]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.3
+[1.1.4]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.4

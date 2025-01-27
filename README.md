@@ -1,6 +1,5 @@
 [![Build Status][ci-img]][ci-url]
 [![Code Climate][clim-img]][clim-url]
-[![NPM][npm-img]][npm-url]
 
 # haraka-plugin-ldap
 
@@ -202,5 +201,3 @@ The search filter applies only to groups (`objectclass=groupOfNames`) with an em
 [ci-url]: https://github.com/haraka/haraka-plugin-ldap/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-ldap/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-ldap
-[npm-img]: https://nodei.co/npm/haraka-plugin-ldap.png
-[npm-url]: https://www.npmjs.com/package/haraka-plugin-ldap
