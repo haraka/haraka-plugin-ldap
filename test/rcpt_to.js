@@ -1,98 +1,101 @@
 'use strict';
 
-const assert = require('assert');
+const { describe, it, beforeEach } = require('node:test');
+const assert = require('node:assert');
 
 const fixtures = require('haraka-test-fixtures');
 const constants = require('haraka-constants');
 const ldappool = require('../pool');
 
-function _set_up(done) {
-    this.user = {
+let user, plugin, connection;
+
+function _set_up(t, done) {
+    user = {
         uid: 'user1',
         dn: 'uid=user1,ou=users,dc=example,dc=com',
         password: 'ykaHsOzEZD',
         mail: 'user1@example.com',
     };
-    this.plugin = require('../rcpt_to');
-    this.connection = fixtures.connection.createConnection();
-    this.connection.transaction = {};
-    this.connection.server = {
+    plugin = require('../rcpt_to');
+    connection = fixtures.connection.createConnection();
+    connection.transaction = {};
+    connection.server = {
         notes: {
             ldappool: new ldappool.LdapPool({
                 main: {
                     server: ['ldap://localhost:3389'],
-                    binddn: this.user.dn,
-                    bindpw: this.user.password,
+                    binddn: user.dn,
+                    bindpw: user.password,
                     basedn: 'dc=example,dc=com',
                 },
             }),
         },
     };
-    this.connection.server.notes.ldappool.config.rcpt_to = {
+    connection.server.notes.ldappool.config.rcpt_to = {
         searchfilter: '(&(objectclass=*)(mailLocalAddress=%a))',
     };
     done();
 }
 
-describe('_verify_existence', function () {
+describe('_verify_existence', () => {
     beforeEach(_set_up);
 
-    it('default user', function (done) {
-        this.plugin._verify_existence(
-            this.user.mail,
+    it('default user', (t, done) => {
+        plugin._verify_existence(
+            user.mail,
             function (err, result) {
                 assert.equal(true, result);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('invalid address', function (done) {
-        this.plugin._verify_existence(
+    it('invalid address', (t, done) => {
+        plugin._verify_existence(
             'unknown',
             function (err, result) {
                 assert.equal(false, result);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('invalid search filter', function (done) {
-        this.connection.server.notes.ldappool.config.rcpt_to.searchfilter =
+    it('invalid search filter', (t, done) => {
+        connection.server.notes.ldappool.config.rcpt_to.searchfilter =
       '(&(objectclass=*)(|(mail=%a';
-        this.plugin._verify_existence(
-            this.user.mail,
+        plugin._verify_existence(
+            user.mail,
             function (err, result) {
                 assert.equal('unbalanced parens', err.message);
                 assert.equal(false, result);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('no pool', function (done) {
-        this.connection.server.notes.ldappool = undefined;
-        this.plugin._verify_existence(
-            this.user.mail,
+    it('no pool', (t, done) => {
+        connection.server.notes.ldappool = undefined;
+        plugin._verify_existence(
+            user.mail,
             function (err, userdn) {
                 assert.equal('LDAP Pool not found!', err);
                 assert.equal(false, userdn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 });
 
-describe('_get_search_conf', function () {
+describe('_get_search_conf', () => {
     beforeEach(_set_up);
 
-    it('get defaults', function (done) {
-        const opts = this.plugin._get_search_conf('testMail', this.connection);
-        const pool = this.connection.server.notes.ldappool;
+    it('get defaults', (t, done) => {
+        const opts = plugin._get_search_conf('testMail', connection);
+        const pool = connection.server.notes.ldappool;
         assert.equal(opts.basedn, pool.config.basedn);
         assert.equal(opts.filter, '(&(objectclass=*)(mailLocalAddress=testMail))');
         assert.equal(opts.scope, pool.config.scope);
@@ -100,14 +103,13 @@ describe('_get_search_conf', function () {
         done();
     });
 
-    it('get userdef', function (done) {
-        this.connection.server.notes.ldappool.config.rcpt_to.basedn =
+    it('get userdef', (t, done) => {
+        connection.server.notes.ldappool.config.rcpt_to.basedn =
       'hop around as you like';
-        this.connection.server.notes.ldappool.config.rcpt_to.searchfilter =
+        connection.server.notes.ldappool.config.rcpt_to.searchfilter =
       '(&(objectclass=posixAccount)(mail=%a))';
-        this.connection.server.notes.ldappool.config.rcpt_to.scope =
-      'one two three';
-        const opts = this.plugin._get_search_conf('testMail', this.connection);
+        connection.server.notes.ldappool.config.rcpt_to.scope = 'one two three';
+        const opts = plugin._get_search_conf('testMail', connection);
         assert.equal(opts.basedn, 'hop around as you like');
         assert.equal(opts.filter, '(&(objectclass=posixAccount)(mail=testMail))');
         assert.equal(opts.scope, 'one two three');
@@ -116,16 +118,16 @@ describe('_get_search_conf', function () {
     });
 });
 
-describe('check_rcpt', function () {
+describe('check_rcpt', () => {
     beforeEach(_set_up);
 
-    it('ok', function (done) {
-        this.plugin.check_rcpt(
+    it('ok', (t, done) => {
+        plugin.check_rcpt(
             function (err) {
                 assert.equal(constants.ok, err);
                 done();
             },
-            this.connection,
+            connection,
             [
                 {
                     address: () => {
@@ -136,15 +138,15 @@ describe('check_rcpt', function () {
         );
     });
 
-    it('denysoft on error', function (done) {
-        this.connection.server.notes.ldappool.config.rcpt_to.searchfilter =
+    it('denysoft on error', (t, done) => {
+        connection.server.notes.ldappool.config.rcpt_to.searchfilter =
       '(&(objectclass=*)(|(mail=%a';
-        this.plugin.check_rcpt(
+        plugin.check_rcpt(
             function (err) {
                 assert.equal(constants.denysoft, err);
                 done();
             },
-            this.connection,
+            connection,
             [
                 {
                     address: () => {
@@ -155,24 +157,24 @@ describe('check_rcpt', function () {
         );
     });
 
-    it('ignore if missing params[0]', function (done) {
-        this.plugin.check_rcpt(
+    it('ignore if missing params[0]', (t, done) => {
+        plugin.check_rcpt(
             function (err) {
                 assert.equal(undefined, err);
                 done();
             },
-            this.connection,
+            connection,
             [],
         );
     });
 
-    it('deny on invalid address', function (done) {
-        this.plugin.check_rcpt(
+    it('deny on invalid address', (t, done) => {
+        plugin.check_rcpt(
             function (err) {
                 assert.equal(constants.deny, err);
                 done();
             },
-            this.connection,
+            connection,
             [
                 {
                     address: () => {

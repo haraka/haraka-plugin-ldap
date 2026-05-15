@@ -1,6 +1,7 @@
 'use strict';
 
-const assert = require('assert');
+const { describe, it, beforeEach } = require('node:test');
+const assert = require('node:assert');
 
 const ldappool = require('../pool');
 
@@ -22,16 +23,18 @@ const testCfg = {
 };
 Object.freeze(testCfg);
 
+let user, cfg;
+
 function _set_up() {
-    this.user = JSON.parse(JSON.stringify(testUser));
-    this.cfg = JSON.parse(JSON.stringify(testCfg));
+    user = JSON.parse(JSON.stringify(testUser));
+    cfg = JSON.parse(JSON.stringify(testCfg));
 }
 
 describe('_set_config', () => {
     beforeEach(_set_up);
 
-    it('defaults', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('defaults', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         const config = pool._set_config();
         assert.equal(
             pool._set_config().toString(),
@@ -51,9 +54,9 @@ describe('_set_config', () => {
         done();
     });
 
-    it('userdef', function () {
-        const pool = new ldappool.LdapPool(this.cfg);
-        const cfg = {
+    it('userdef', () => {
+        const pool = new ldappool.LdapPool(cfg);
+        const userdefCfg = {
             main: {
                 server: 'testserver',
                 timeout: 10000,
@@ -65,7 +68,7 @@ describe('_set_config', () => {
                 basedn: 'basedn-test',
             },
         };
-        const config = pool._set_config(cfg);
+        const config = pool._set_config(userdefCfg);
         assert.equal('testserver', config.servers);
         assert.equal(10000, config.timeout);
         assert.equal(true, config.tls_enabled);
@@ -77,11 +80,11 @@ describe('_set_config', () => {
     });
 });
 
-describe('_get_ldapjs_config', function () {
+describe('_get_ldapjs_config', () => {
     beforeEach(_set_up);
 
-    it('defaults', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('defaults', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         const config = pool._get_ldapjs_config();
         assert.equal('ldap://localhost:3389', config.url);
         assert.equal(undefined, config.timeout);
@@ -89,13 +92,14 @@ describe('_get_ldapjs_config', function () {
         done();
     });
 
-    it('userdef', function (done) {
-        const cfg = Object.assign({}, this.cfg);
-        cfg.main.server = ['ldap://localhost:3389'];
-        cfg.main.timeout = 42;
-        cfg.main.tls_rejectUnauthorized = true;
-        cfg.main.ldap_pool_size = 20;
-        const pool = new ldappool.LdapPool(cfg);
+    it('userdef', (t, done) => {
+        const localCfg = Object.assign({}, cfg);
+        localCfg.main = Object.assign({}, cfg.main);
+        localCfg.main.server = ['ldap://localhost:3389'];
+        localCfg.main.timeout = 42;
+        localCfg.main.tls_rejectUnauthorized = true;
+        localCfg.main.ldap_pool_size = 20;
+        const pool = new ldappool.LdapPool(localCfg);
         const config = pool._get_ldapjs_config();
         assert.equal('ldap://localhost:3389', config.url);
         assert.equal(42, config.timeout);
@@ -104,12 +108,11 @@ describe('_get_ldapjs_config', function () {
     });
 });
 
-describe('_create_client', function () {
+describe('_create_client', () => {
     beforeEach(_set_up);
 
-    it('get valid and connected client', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
-        const user = this.user;
+    it('get valid and connected client', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         pool._create_client(function (err, client) {
             assert.ifError(err);
             assert.equal(undefined, client._starttls);
@@ -123,10 +126,10 @@ describe('_create_client', function () {
         });
     });
 
-    it('client with tls', function (done) {
-        this.cfg.main.tls_enabled = true;
+    it('client with tls', (t, done) => {
+        cfg.main.tls_enabled = true;
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-        const pool = new ldappool.LdapPool(this.cfg);
+        const pool = new ldappool.LdapPool(cfg);
         pool._create_client(function (err, client) {
             assert.ifError(err);
             assert.ok(client._starttls.success);
@@ -138,11 +141,11 @@ describe('_create_client', function () {
     });
 });
 
-describe('close', function () {
+describe('close', () => {
     beforeEach(_set_up);
 
-    it('test if connections are closed after call', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('test if connections are closed after call', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         assert.equal(0, pool.pool.servers.length);
         pool.get(function (err, client) {
             assert.equal(true, client.connected);
@@ -156,32 +159,32 @@ describe('close', function () {
     });
 });
 
-describe('_bind_default', function () {
+describe('_bind_default', () => {
     beforeEach(_set_up);
 
-    it('bind with given binddn / bindpw', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('bind with given binddn / bindpw', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         pool._bind_default((err, client) => {
             assert.equal(true, client.connected);
             done();
         });
     });
 
-    it('bind with no binddn / bindpw', function (done) {
-        this.cfg.main.binddn = undefined;
-        this.cfg.main.bindpw = undefined;
+    it('bind with no binddn / bindpw', (t, done) => {
+        cfg.main.binddn = undefined;
+        cfg.main.bindpw = undefined;
 
-        const pool = new ldappool.LdapPool(this.cfg);
+        const pool = new ldappool.LdapPool(cfg);
         pool._bind_default((err, client) => {
             assert.equal(false, client.connected);
             done();
         });
     });
 
-    it('bind with invalid binddn / bindpw', function (done) {
-        this.cfg.main.binddn = 'invalid';
-        this.cfg.main.bindpw = 'invalid';
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('bind with invalid binddn / bindpw', (t, done) => {
+        cfg.main.binddn = 'invalid';
+        cfg.main.bindpw = 'invalid';
+        const pool = new ldappool.LdapPool(cfg);
         pool._bind_default((err, client) => {
             assert.equal('InvalidDnSyntaxError', err.name);
             client.unbind((err2) => {
@@ -195,8 +198,8 @@ describe('_bind_default', function () {
 describe('get', () => {
     beforeEach(_set_up);
 
-    it('test connection validity and pooling', function (done) {
-        const pool = new ldappool.LdapPool(this.cfg);
+    it('test connection validity and pooling', (t, done) => {
+        const pool = new ldappool.LdapPool(cfg);
         assert.equal(0, pool.pool.servers.length);
 
         pool.get((err, client) => {

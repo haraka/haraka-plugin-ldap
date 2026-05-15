@@ -1,20 +1,23 @@
 'use strict';
 
-const assert = require('assert');
+const { describe, it, beforeEach } = require('node:test');
+const assert = require('node:assert');
 const util = require('util');
 
 const fixtures = require('haraka-test-fixtures');
 const constants = require('haraka-constants');
 const ldappool = require('../pool');
 
-function _set_up(done) {
-    this.user = {
+let user, group, plugin, connection;
+
+function _set_up(t, done) {
+    user = {
         uid: 'user1',
         dn: 'uid=user1,ou=users,dc=example,dc=com',
         password: 'ykaHsOzEZD',
         mail: 'user1@example.com',
     };
-    this.group = {
+    group = {
         dn: 'cn=postmaster,dc=example,dc=com',
         mail: 'postmaster@example.com',
         member: [
@@ -23,22 +26,22 @@ function _set_up(done) {
             'uid=nonunique,ou=users,dc=example,dc=com',
         ],
     };
-    this.plugin = require('../aliases');
-    this.connection = fixtures.connection.createConnection();
-    this.connection.transaction = {};
-    this.connection.server = {
+    plugin = require('../aliases');
+    connection = fixtures.connection.createConnection();
+    connection.transaction = {};
+    connection.server = {
         notes: {
             ldappool: new ldappool.LdapPool({
                 main: {
                     server: ['ldap://localhost:3389'],
-                    binddn: this.user.dn,
-                    bindpw: this.user.password,
+                    binddn: user.dn,
+                    bindpw: user.password,
                     basedn: 'dc=example,dc=com',
                 },
             }),
         },
     };
-    this.connection.server.notes.ldappool.config.aliases = {
+    connection.server.notes.ldappool.config.aliases = {
         subattribute: 'mailLocalAddress',
         attribute: 'member',
         searchfilter: '(&(objectclass=groupOfNames)(mailLocalAddress=%a))',
@@ -46,13 +49,13 @@ function _set_up(done) {
     done();
 }
 
-describe('_get_alias', function () {
+describe('_get_alias', () => {
     beforeEach(_set_up);
 
-    it('ok with test group', function (done) {
-        this.connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
-        this.plugin._get_alias(
-            this.group.mail,
+    it('ok with test group', (t, done) => {
+        connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
+        plugin._get_alias(
+            group.mail,
             (err, result) => {
                 assert.ifError(err);
                 assert.deepStrictEqual(
@@ -61,28 +64,28 @@ describe('_get_alias', function () {
                 );
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('ok with forwarding user', function (done) {
-        this.connection.server.notes.ldappool.config.aliases.searchfilter =
+    it('ok with forwarding user', (t, done) => {
+        connection.server.notes.ldappool.config.aliases.searchfilter =
       '(&(objectclass=*)(mailLocalAddress=%a))';
-        this.connection.server.notes.ldappool.config.aliases.attribute =
+        connection.server.notes.ldappool.config.aliases.attribute =
       'mailRoutingAddress';
-        this.plugin._get_alias(
+        plugin._get_alias(
             'forwarder@example.com',
             function (err, result) {
                 assert.equal('user2@example.com', result[0]);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('ok with resolve-by-dn', function (done) {
-        this.connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
-        this.plugin._get_alias(
+    it('ok with resolve-by-dn', (t, done) => {
+        connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
+        plugin._get_alias(
             'postmaster@example.com',
             function (err, result) {
                 const expected = [
@@ -95,32 +98,29 @@ describe('_get_alias', function () {
                 assert.equal(util.inspect(expected), util.inspect(result));
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('empty result with invalid mail', function (done) {
-        this.plugin._get_alias(
+    it('empty result with invalid mail', (t, done) => {
+        plugin._get_alias(
             'invalid@email',
             function (err, result) {
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 });
 
-describe('_get_search_conf_alias', function () {
+describe('_get_search_conf_alias', () => {
     beforeEach(_set_up);
 
-    it('get defaults', function (done) {
-        const pool = this.connection.server.notes.ldappool;
+    it('get defaults', (t, done) => {
+        const pool = connection.server.notes.ldappool;
         pool.config.aliases.searchfilter = undefined;
         pool.config.aliases.attribute = undefined;
-        const opts = this.plugin._get_search_conf_alias(
-            'testMail',
-            this.connection,
-        );
+        const opts = plugin._get_search_conf_alias('testMail', connection);
         assert.equal(opts.basedn, pool.config.basedn);
         assert.equal(
             opts.filter,
@@ -134,15 +134,12 @@ describe('_get_search_conf_alias', function () {
         done();
     });
 
-    it('get userdef', function (done) {
-        const pool = this.connection.server.notes.ldappool;
+    it('get userdef', (t, done) => {
+        const pool = connection.server.notes.ldappool;
         pool.config.aliases.basedn = 'hop around as you like';
         pool.config.aliases.searchfilter = '(&(objectclass=posixAccount)(mail=%a))';
         pool.config.aliases.scope = 'one two three';
-        const opts = this.plugin._get_search_conf_alias(
-            'testMail',
-            this.connection,
-        );
+        const opts = plugin._get_search_conf_alias('testMail', connection);
         assert.equal(opts.basedn, 'hop around as you like');
         assert.equal(opts.filter, '(&(objectclass=posixAccount)(mail=testMail))');
         assert.equal(opts.scope, 'one two three');
@@ -151,24 +148,23 @@ describe('_get_search_conf_alias', function () {
     });
 });
 
-describe('_resolve_dn_to_alias', function () {
+describe('_resolve_dn_to_alias', () => {
     beforeEach(_set_up);
 
-    it('ok one', function (done) {
-        const user = this.user;
-        this.plugin._resolve_dn_to_alias(
-            [this.user.dn],
+    it('ok one', (t, done) => {
+        plugin._resolve_dn_to_alias(
+            [user.dn],
             function (err, result) {
                 assert.equal(user.mail, result);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('ok multiple', function (done) {
-        this.plugin._resolve_dn_to_alias(
-            this.group.member,
+    it('ok multiple', (t, done) => {
+        plugin._resolve_dn_to_alias(
+            group.member,
             function (err, result) {
                 result.sort();
                 assert.equal('nonunique1@example.com', result[0]);
@@ -176,28 +172,26 @@ describe('_resolve_dn_to_alias', function () {
                 assert.equal('user2@example.com', result[2]);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('empty array when unknown dn', function (done) {
-        this.plugin._resolve_dn_to_alias(
+    it('empty array when unknown dn', (t, done) => {
+        plugin._resolve_dn_to_alias(
             ['uid=unknown,dc=wherever,dc=com'],
             function (err, result) {
                 assert.equal(0, result.length);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 });
 
-describe('aliases', function () {
+describe('aliases', () => {
     beforeEach(_set_up);
 
-    it('ignore if invalid call / no rcpt', function (done) {
-        const plugin = this.plugin;
-        const connection = this.connection;
+    it('ignore if invalid call / no rcpt', (t, done) => {
         function noParams(result) {
             assert.equal(undefined, result);
             plugin.aliases(noRcpt, connection, []);
@@ -213,17 +207,15 @@ describe('aliases', function () {
         plugin.aliases(noParams, connection);
     });
 
-    it('DENYSOFT if LDAP not usable', function (done) {
-        const plugin = this.plugin;
-        const user = this.user;
-        this.connection.server.notes.ldappool.config.aliases.searchfilter =
+    it('DENYSOFT if LDAP not usable', (t, done) => {
+        connection.server.notes.ldappool.config.aliases.searchfilter =
       '(&(objectclass=posixAccount)(mail=%a';
         plugin.aliases(
             function (result) {
                 assert.equal(constants.denysoft, result);
                 done();
             },
-            this.connection,
+            connection,
             [
                 {
                     address: () => {
@@ -233,13 +225,12 @@ describe('aliases', function () {
             ],
         );
     });
-    it('next if no results', function (done) {
-        const plugin = this.plugin;
+    it('next if no results', (t, done) => {
         function next(result) {
             assert.equal(undefined, result);
             done();
         }
-        plugin.aliases(next, this.connection, [
+        plugin.aliases(next, connection, [
             {
                 address: () => {
                     return 'unknown@mail';
@@ -247,12 +238,9 @@ describe('aliases', function () {
             },
         ]);
     });
-    it('resolve group members', function (done) {
-        const plugin = this.plugin;
-        const group = this.group;
-        const connection = this.connection;
+    it('resolve group members', (t, done) => {
         connection.transaction = { rcpt_to: [group.mail] };
-        this.connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
+        connection.server.notes.ldappool.config.aliases.attribute_is_dn = true;
         const expected = [
             '<user1@example.com>',
             '<user2@example.com>',
@@ -276,10 +264,7 @@ describe('aliases', function () {
             },
         ]);
     });
-    it('do not change non-aliased user', function (done) {
-        const plugin = this.plugin;
-        const user = this.user;
-        const connection = this.connection;
+    it('do not change non-aliased user', (t, done) => {
         connection.transaction = { rcpt_to: ['still the same'] };
         function next(result) {
             assert.equal(undefined, result);
@@ -294,9 +279,7 @@ describe('aliases', function () {
             },
         ]);
     });
-    it('resolve forwarding user', function (done) {
-        const plugin = this.plugin;
-        const connection = this.connection;
+    it('resolve forwarding user', (t, done) => {
         connection.transaction = { rcpt_to: ['forwarder@example.com'] };
         connection.server.notes.ldappool.config.aliases.searchfilter =
       '(&(objectclass=*)(mailLocalAddress=%a))';

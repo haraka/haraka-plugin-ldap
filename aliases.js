@@ -1,7 +1,7 @@
 'use strict';
 
 const util = require('util');
-const Address = require('address-rfc2821').Address;
+const Address = require('@haraka/email-address').Address;
 const constants = require('haraka-constants');
 
 exports._get_alias = function (address, callback, connection) {
@@ -125,7 +125,7 @@ exports.aliases = function (next, connection, params) {
         );
         return next();
     }
-    const rcpt = params[0].address();
+    const rcpt = params[0].address;
     this._get_alias(
         rcpt,
         (err, result) => {

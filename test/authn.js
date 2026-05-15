@@ -1,6 +1,7 @@
 'use strict';
 
-const assert = require('assert');
+const { describe, it, beforeEach } = require('node:test');
+const assert = require('node:assert');
 
 const fixtures = require('haraka-test-fixtures');
 const ldappool = require('../pool');
@@ -33,33 +34,34 @@ const users = [
     },
 ];
 
-function _set_up(done) {
-    this.users = users;
-    this.plugin = require('../authn');
-    this.connection = fixtures.connection.createConnection();
-    this.connection.server = {
+let plugin, connection;
+
+function _set_up(t, done) {
+    plugin = require('../authn');
+    connection = fixtures.connection.createConnection();
+    connection.server = {
         notes: {
             ldappool: new ldappool.LdapPool({
                 main: {
                     server: ['ldap://localhost:3389'],
-                    binddn: this.users[0].dn,
-                    bindpw: this.users[0].password,
+                    binddn: users[0].dn,
+                    bindpw: users[0].password,
                     basedn: 'dc=example,dc=com',
                 },
             }),
         },
     };
-    this.connection.server.notes.ldappool.config.authn = {};
+    connection.server.notes.ldappool.config.authn = {};
     done();
 }
 
-describe('_verify_user', function () {
+describe('_verify_user', () => {
     beforeEach(_set_up);
 
-    it('verifies test data', function (done) {
+    it('verifies test data', (t, done) => {
         let counter = 0;
         for (const user of users) {
-            this.plugin._verify_user(
+            plugin._verify_user(
                 user.dn,
                 user.password,
                 (result) => {
@@ -67,40 +69,38 @@ describe('_verify_user', function () {
                     counter++;
                     if (counter === users.length) done();
                 },
-                this.connection,
+                connection,
             );
         }
     });
 
-    it('safety check: wrong password fails', function (done) {
-        this.plugin._verify_user(
-            this.users[0].dn,
+    it('safety check: wrong password fails', (t, done) => {
+        plugin._verify_user(
+            users[0].dn,
             'wrong',
             function (ok) {
                 assert.equal(false, ok);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('safety check: invalid dn fails', function (done) {
-        this.plugin._verify_user(
+    it('safety check: invalid dn fails', (t, done) => {
+        plugin._verify_user(
             'wrong',
             'wrong',
             function (ok) {
                 assert.equal(false, ok);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('no pool', function (done) {
-        const plugin = this.plugin;
-        const connection = this.connection;
+    it('no pool', (t, done) => {
         connection.server.notes.ldappool = undefined;
-        const user = this.users[0];
+        const user = users[0];
         plugin._verify_user(
             user.dn,
             user.password,
@@ -113,12 +113,12 @@ describe('_verify_user', function () {
     });
 });
 
-describe('_get_search_conf', function () {
+describe('_get_search_conf', () => {
     beforeEach(_set_up);
 
-    it('get defaults', function (done) {
-        const pool = this.connection.server.notes.ldappool;
-        const opts = this.plugin._get_search_conf('testUid', this.connection);
+    it('get defaults', (t, done) => {
+        const pool = connection.server.notes.ldappool;
+        const opts = plugin._get_search_conf('testUid', connection);
         assert.equal(opts.basedn, pool.config.basedn);
         assert.equal(opts.filter, '(&(objectclass=*)(uid=testUid))');
         assert.equal(opts.scope, pool.config.scope);
@@ -126,12 +126,12 @@ describe('_get_search_conf', function () {
         done();
     });
 
-    it('get userdef', function (done) {
-        const pool = this.connection.server.notes.ldappool;
+    it('get userdef', (t, done) => {
+        const pool = connection.server.notes.ldappool;
         pool.config.authn.basedn = 'hop around as you like';
         pool.config.authn.searchfilter = '(&(objectclass=posixAccount)(uid=%u))';
         pool.config.authn.scope = 'one two three';
-        const opts = this.plugin._get_search_conf('testUid', this.connection);
+        const opts = plugin._get_search_conf('testUid', connection);
         assert.equal(opts.basedn, 'hop around as you like');
         assert.equal(opts.filter, '(&(objectclass=posixAccount)(uid=testUid))');
         assert.equal(opts.scope, 'one two three');
@@ -140,108 +140,108 @@ describe('_get_search_conf', function () {
     });
 });
 
-describe('get_dn_for_uid', function () {
+describe('get_dn_for_uid', () => {
     beforeEach(_set_up);
 
-    it('user 1 dn2uid', function (done) {
-        this.plugin._get_dn_for_uid(
+    it('user 1 dn2uid', (t, done) => {
+        plugin._get_dn_for_uid(
             users[0].uid,
             function (err, userdn) {
                 assert.equal(null, err);
                 assert.equal(userdn.toString(), users[0].dn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('user 2 dn2uid', function (done) {
-        this.plugin._get_dn_for_uid(
+    it('user 2 dn2uid', (t, done) => {
+        plugin._get_dn_for_uid(
             users[1].uid,
             function (err, userdn) {
                 assert.equal(null, err);
                 assert.equal(userdn.toString(), users[1].dn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('nonunique dn2uid', function (done) {
-        this.plugin._get_dn_for_uid(
+    it('nonunique dn2uid', (t, done) => {
+        plugin._get_dn_for_uid(
             'nonunique',
             function (err, userdn) {
                 assert.equal(null, err);
                 assert.equal(2, userdn.length);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('invalid uid', function (done) {
-        this.plugin._get_dn_for_uid(
+    it('invalid uid', (t, done) => {
+        plugin._get_dn_for_uid(
             'doesntexist',
             function (err, userdn) {
                 assert.equal(null, err);
                 assert.equal(0, userdn.length);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('invalid search filter', function (done) {
-        const user = this.users[0];
-        const pool = this.connection.server.notes.ldappool;
+    it('invalid search filter', (t, done) => {
+        const user = users[0];
+        const pool = connection.server.notes.ldappool;
         pool.config.authn.searchfilter = '(&(objectclass=*)(uid=%u';
-        this.plugin._get_dn_for_uid(
+        plugin._get_dn_for_uid(
             user.uid,
             function (err, userdn) {
                 assert.equal('unbalanced parens', err.message);
                 assert.equal(undefined, userdn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('invalid basedn', function (done) {
-        const user = this.users[0];
-        this.connection.server.notes.ldappool.config.basedn = 'invalid';
-        this.plugin._get_dn_for_uid(
+    it('invalid basedn', (t, done) => {
+        const user = users[0];
+        connection.server.notes.ldappool.config.basedn = 'invalid';
+        plugin._get_dn_for_uid(
             user.uid,
             function (err, userdn) {
                 assert.equal('InvalidDistinguishedNameError', err.name);
                 assert.equal(undefined, userdn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 
-    it('no pool', function (done) {
-        this.connection.server.notes.ldappool = undefined;
-        const user = this.users[0];
-        this.plugin._get_dn_for_uid(
+    it('no pool', (t, done) => {
+        connection.server.notes.ldappool = undefined;
+        const user = users[0];
+        plugin._get_dn_for_uid(
             user.uid,
             function (err, userdn) {
                 assert.equal('LDAP Pool not found!', err);
                 assert.equal(undefined, userdn);
                 done();
             },
-            this.connection,
+            connection,
         );
     });
 });
 
-describe('check_plain_passwd', function () {
+describe('check_plain_passwd', () => {
     beforeEach(_set_up);
 
     for (const user of users.slice(0, 2)) {
-        it(`validates user ${user.uid}`, function (done) {
-            this.plugin.check_plain_passwd(
-                this.connection,
+        it(`validates user ${user.uid}`, (t, done) => {
+            plugin.check_plain_passwd(
+                connection,
                 user.uid,
                 user.password,
                 function (result) {
@@ -253,9 +253,9 @@ describe('check_plain_passwd', function () {
     }
 
     for (const user of users.slice(2)) {
-        it(`rejects user ${user.uid}`, function (done) {
-            this.plugin.check_plain_passwd(
-                this.connection,
+        it(`rejects user ${user.uid}`, (t, done) => {
+            plugin.check_plain_passwd(
+                connection,
                 user.uid,
                 user.password,
                 function (result) {
@@ -266,9 +266,9 @@ describe('check_plain_passwd', function () {
         });
     }
 
-    it(`rejects invalid user`, function (done) {
-        this.plugin.check_plain_passwd(
-            this.connection,
+    it(`rejects invalid user`, (t, done) => {
+        plugin.check_plain_passwd(
+            connection,
             'invalid',
             'invalid',
             function (result) {
@@ -279,13 +279,13 @@ describe('check_plain_passwd', function () {
     });
 
     for (const user of users) {
-        it(`dn validates user ${user.uid}`, function (done) {
-            this.connection.server.notes.ldappool.config.authn.dn = [
+        it(`dn validates user ${user.uid}`, (t, done) => {
+            connection.server.notes.ldappool.config.authn.dn = [
                 'uid=%u,ou=users,dc=example,dc=com',
                 'uid=%u,ou=people,dc=example,dc=com',
             ];
-            this.plugin.check_plain_passwd(
-                this.connection,
+            plugin.check_plain_passwd(
+                connection,
                 user.uid,
                 user.password,
                 function (result) {
@@ -296,13 +296,13 @@ describe('check_plain_passwd', function () {
         });
     }
 
-    it(`dn rejects invalid user`, function (done) {
-        this.connection.server.notes.ldappool.config.authn.dn = [
+    it(`dn rejects invalid user`, (t, done) => {
+        connection.server.notes.ldappool.config.authn.dn = [
             'uid=%u,ou=users,dc=example,dc=com',
             'uid=%u,ou=people,dc=example,dc=com',
         ];
-        this.plugin.check_plain_passwd(
-            this.connection,
+        plugin.check_plain_passwd(
+            connection,
             'invalid',
             'invalid',
             function (result) {

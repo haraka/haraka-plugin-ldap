@@ -57,7 +57,7 @@ exports.check_rcpt = function (next, connection, params) {
         );
         return next();
     }
-    const rcpt = params[0].address();
+    const rcpt = params[0].address;
     this._verify_existence(
         rcpt,
         (err, result) => {

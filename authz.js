@@ -67,7 +67,7 @@ exports.check_authz = function (next, connection, params) {
         return next();
     }
     const uid = connection.notes.auth_user;
-    const address = params[0].address();
+    const address = params[0].address;
     this._verify_address(
         uid,
         address,
