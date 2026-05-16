@@ -53,6 +53,8 @@
     "ldapjs": "^3.0.7"
   },
   "prettier": {
-    "singleQuote": true
+    "singleQuote": true,
+    "semi": false,
+    "printWidth": 100
   }
 }

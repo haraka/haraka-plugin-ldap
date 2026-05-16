@@ -1,128 +1,123 @@
-'use strict';
+'use strict'
 
-const util = require('util');
-const objectFromEntry = require('./entry_object');
+const util = require('util')
 
 exports._verify_user = (userdn, passwd, cb, connection) => {
-    const pool = connection.server.notes.ldappool;
+  const pool = connection.server.notes.ldappool
 
-    function onError(err) {
-        connection.logerror(
-            `Could not verify userdn and password: ${util.inspect(err)}`,
-        );
-        cb(false);
-    }
+  function onError(err) {
+    connection.logerror(`Could not verify userdn and password: ${util.inspect(err)}`)
+    cb(false)
+  }
 
-    if (!pool) return onError('LDAP Pool not found');
+  if (!pool) return onError('LDAP Pool not found')
 
-    pool._create_client((err, client) => {
-        if (err) return onError(err);
+  pool._create_client((err, client) => {
+    if (err) return onError(err)
 
-        client.bind(userdn, passwd, (err2) => {
-            client.unbind();
+    client.bind(userdn, passwd, (err2) => {
+      client.unbind()
 
-            if (err2) {
-                connection.logdebug(
-                    `Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`,
-                );
-                return cb(false);
-            }
+      if (err2) {
+        connection.logdebug(
+          `Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`,
+        )
+        return cb(false)
+      }
 
-            cb(true);
-        });
-    });
-};
+      cb(true)
+    })
+  })
+}
 
 exports._get_search_conf = (user, connection) => {
-    const pool = connection.server.notes.ldappool;
-    const filter = pool.config.authn.searchfilter || '(&(objectclass=*)(uid=%u))';
-    return {
-        basedn: pool.config.authn.basedn || pool.config.basedn,
-        filter: filter.replace(/%u/g, user),
-        scope: pool.config.authn.scope || pool.config.scope,
-        attributes: ['dn'],
-    };
-};
+  const pool = connection.server.notes.ldappool
+  const filter = pool.config.authn.searchfilter || '(&(objectclass=*)(uid=%u))'
+  return {
+    basedn: pool.config.authn.basedn || pool.config.basedn,
+    filter: filter.replace(/%u/g, user),
+    scope: pool.config.authn.scope || pool.config.scope,
+    attributes: ['dn'],
+  }
+}
 
 exports._get_dn_for_uid = function (uid, callback, connection) {
-    const pool = connection.server.notes.ldappool;
-    function onError(err) {
-        connection.logerror(`Could not get DN for UID ${uid}`);
-        connection.logdebug(`: ${util.inspect(err)}`);
-        callback(err);
+  const pool = connection.server.notes.ldappool
+  function onError(err) {
+    connection.logerror(`Could not get DN for UID ${uid}`)
+    connection.logdebug(`: ${util.inspect(err)}`)
+    callback(err)
+  }
+  if (!pool) return onError('LDAP Pool not found!')
+
+  pool.get((err, client) => {
+    if (err) return onError(err)
+
+    const config = this._get_search_conf(uid, connection)
+    connection.logdebug(`Getting DN for uid: ${util.inspect(config)}`)
+    try {
+      client.search(config.basedn, config, (search_error, res) => {
+        if (search_error) onError(search_error)
+        const userdn = []
+        res.on('searchEntry', (entry) => {
+          userdn.push(String(entry.dn))
+        })
+        res.on('error', onError)
+        res.on('end', () => {
+          callback(null, userdn)
+        })
+      })
+    } catch (e) {
+      onError(e)
     }
-    if (!pool) return onError('LDAP Pool not found!');
-
-    pool.get((err, client) => {
-        if (err) return onError(err);
-
-        const config = this._get_search_conf(uid, connection);
-        connection.logdebug(`Getting DN for uid: ${util.inspect(config)}`);
-        try {
-            client.search(config.basedn, config, (search_error, res) => {
-                if (search_error) onError(search_error);
-                const userdn = [];
-                res.on('searchEntry', (entry) => {
-                    userdn.push(objectFromEntry(entry).dn);
-                });
-                res.on('error', onError);
-                res.on('end', () => {
-                    callback(null, userdn);
-                });
-            });
-        } catch (e) {
-            onError(e);
-        }
-    });
-};
+  })
+}
 
 exports.check_plain_passwd = function (connection, user, passwd, cb) {
-    if (Array.isArray(connection.server.notes.ldappool.config.authn.dn)) {
-        return this.check_plain_passwd_dn(connection, user, passwd, cb);
-    }
+  if (Array.isArray(connection.server.notes.ldappool.config.authn.dn)) {
+    return this.check_plain_passwd_dn(connection, user, passwd, cb)
+  }
 
-    connection.logdebug(`Looking up user ${util.inspect(user)} by search.`);
-    this._get_dn_for_uid(
-        user,
-        (err, userdn) => {
-            if (err) {
-                connection.logerror(
-                    `Could not use LDAP for password check: ${util.inspect(err)}`,
-                );
-                cb(false);
-            } else if (userdn.length !== 1) {
-                connection.logdebug(
-                    `None or nonunique LDAP search result for user ${util.inspect(user)}, access denied`,
-                );
-                cb(false);
-            } else {
-                this._verify_user(userdn[0], passwd, cb, connection);
-            }
-        },
-        connection,
-    );
-};
+  connection.logdebug(`Looking up user ${util.inspect(user)} by search.`)
+  this._get_dn_for_uid(
+    user,
+    (err, userdn) => {
+      if (err) {
+        connection.logerror(`Could not use LDAP for password check: ${util.inspect(err)}`)
+        cb(false)
+      } else if (userdn.length !== 1) {
+        connection.logdebug(
+          `None or nonunique LDAP search result for user ${util.inspect(user)}, access denied`,
+        )
+        cb(false)
+      } else {
+        this._verify_user(userdn[0], passwd, cb, connection)
+      }
+    },
+    connection,
+  )
+}
 
 exports.check_plain_passwd_dn = function (connection, user, passwd, cb) {
-    connection.logdebug(`Looking up user ${util.inspect(user)} by DN.`);
+  connection.logdebug(`Looking up user ${util.inspect(user)} by DN.`)
 
-    let iter = 0;
-    let cbCalled = false;
+  let iter = 0
+  let cbCalled = false
 
-    function cbOnce(result) {
-        iter++;
-        if (cbCalled) return;
-        if (result) {
-            cbCalled = true;
-            return cb(result);
-        }
-        if (iter === connection.server.notes.ldappool.config.authn.dn.length) {
-            cbCalled = true;
-            cb(result);
-        }
+  function cbOnce(result) {
+    iter++
+    if (cbCalled) return
+    if (result) {
+      cbCalled = true
+      return cb(result)
     }
-
-    for (const dn of connection.server.notes.ldappool.config.authn.dn) {
-        this._verify_user(dn.replace(/%u/g, user), passwd, cbOnce, connection);
+    if (iter === connection.server.notes.ldappool.config.authn.dn.length) {
+      cbCalled = true
+      cb(result)
     }
-};
+  }
+
+  for (const dn of connection.server.notes.ldappool.config.authn.dn) {
+    this._verify_user(dn.replace(/%u/g, user), passwd, cbOnce, connection)
+  }
+}
