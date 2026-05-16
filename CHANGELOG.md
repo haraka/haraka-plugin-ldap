@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.2.0] - 2026-05-15
 
+- dep(ldapjs): update to v3
 - dep(address-rfc2821): replaced with @haraka/email-address
 - test: runner is now node:test
 

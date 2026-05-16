@@ -48,6 +48,10 @@ class LdapPool {
             console.error(err);
         });
 
+        client.on('error', (err) => {
+            console.error(err);
+        });
+
         if (!this.config.tls_enabled) return next(null, client);
 
         client.starttls({}, null, (err) => {

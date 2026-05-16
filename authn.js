@@ -1,6 +1,7 @@
 'use strict';
 
 const util = require('util');
+const objectFromEntry = require('./entry_object');
 
 exports._verify_user = (userdn, passwd, cb, connection) => {
     const pool = connection.server.notes.ldappool;
@@ -62,7 +63,7 @@ exports._get_dn_for_uid = function (uid, callback, connection) {
                 if (search_error) onError(search_error);
                 const userdn = [];
                 res.on('searchEntry', (entry) => {
-                    userdn.push(entry.object.dn);
+                    userdn.push(objectFromEntry(entry).dn);
                 });
                 res.on('error', onError);
                 res.on('end', () => {

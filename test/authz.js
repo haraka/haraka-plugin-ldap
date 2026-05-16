@@ -87,7 +87,7 @@ describe('_verify_address', () => {
             user.uid,
             user.mail,
             function (err, result) {
-                assert.equal('unbalanced parens', err.message);
+                assert.equal('unbalanced parentheses', err.message);
                 assert.equal(false, result);
                 done();
             },

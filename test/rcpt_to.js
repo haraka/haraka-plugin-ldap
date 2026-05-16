@@ -68,7 +68,7 @@ describe('_verify_existence', () => {
         plugin._verify_existence(
             user.mail,
             function (err, result) {
-                assert.equal('unbalanced parens', err.message);
+                assert.equal('unbalanced parentheses', err.message);
                 assert.equal(false, result);
                 done();
             },

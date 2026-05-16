@@ -3,6 +3,7 @@
 const util = require('util');
 const Address = require('@haraka/email-address').Address;
 const constants = require('haraka-constants');
+const objectFromEntry = require('./entry_object');
 
 exports._get_alias = function (address, callback, connection) {
     const pool = connection.server.notes.ldappool;
@@ -26,7 +27,7 @@ exports._get_alias = function (address, callback, connection) {
                 }
                 let alias = [];
                 res.on('searchEntry', (entry) => {
-                    alias = alias.concat(entry.object[config.attributes[0]]);
+                    alias = alias.concat(objectFromEntry(entry)[config.attributes[0]]);
                 });
                 res.on('error', onError);
                 res.on('end', () => {
@@ -90,7 +91,7 @@ exports._resolve_dn_to_alias = (dn, callback, connection) => {
                         if (search_error) onError(search_error, d);
 
                         res.on('searchEntry', (entry) => {
-                            const arr_addr = entry.object[config.attributes[0]];
+                            const arr_addr = objectFromEntry(entry)[config.attributes[0]];
                             entries.push(Array.isArray(arr_addr) ? arr_addr[0] : arr_addr);
                         });
 

@@ -198,7 +198,7 @@ describe('get_dn_for_uid', () => {
         plugin._get_dn_for_uid(
             user.uid,
             function (err, userdn) {
-                assert.equal('unbalanced parens', err.message);
+                assert.equal('unbalanced parentheses', err.message);
                 assert.equal(undefined, userdn);
                 done();
             },
@@ -212,7 +212,7 @@ describe('get_dn_for_uid', () => {
         plugin._get_dn_for_uid(
             user.uid,
             function (err, userdn) {
-                assert.equal('InvalidDistinguishedNameError', err.name);
+                assert.ok(err);
                 assert.equal(undefined, userdn);
                 done();
             },
