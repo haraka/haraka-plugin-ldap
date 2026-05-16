@@ -6,6 +6,7 @@ on:
 
 env:
   CI: true
+  LDAPTLS_REQCERT: never
 
 jobs:
   lint:
