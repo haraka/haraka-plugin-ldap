@@ -23,7 +23,7 @@
     "test": "node --test --test-force-exit test/*.js",
     "versions": "npx npm-dep-mgr check",
     "versions:fix": "npx npm-dep-mgr update",
-    "test:coverage": "npx c8 --reporter=text --reporter=text-summary npm test"
+    "test:coverage": "node --test --test-force-exit --experimental-test-coverage --test-coverage-exclude=package.json --test-coverage-exclude=test/*.js test/*.js"
   },
   "keywords": [
     "haraka",

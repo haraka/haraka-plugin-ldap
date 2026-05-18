@@ -1,7 +1,7 @@
 'use strict'
 
 const util = require('util')
-const Address = require('@haraka/email-address').Address
+const { Address } = require('@haraka/email-address')
 const constants = require('haraka-constants')
 
 // Pull an attribute's values off an ldapjs v3 search entry. `.values`

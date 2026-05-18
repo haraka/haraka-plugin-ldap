@@ -4,7 +4,7 @@ const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
 const fixtures = require('haraka-test-fixtures')
-const Address = require('@haraka/email-address').Address
+const { Address } = require('@haraka/email-address')
 const constants = require('haraka-constants')
 const ldappool = require('../pool')
 
