@@ -4,6 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.2.1] - 2026-05-24
+
+
 ### [1.2.0] - 2026-05-24
 
 - dep(ldapjs): update to v3
@@ -69,3 +72,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.3]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.3
 [1.1.4]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.4
 [1.2.0]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.2.0
+[1.2.1]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.2.1
