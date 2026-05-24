@@ -21,9 +21,7 @@ export default [
         ...globals.mocha,
       },
     },
-
     rules: {
-      indent: 'warn',
       'no-unused-vars': 0,
     },
   },
