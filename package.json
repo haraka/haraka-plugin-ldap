@@ -45,7 +45,7 @@
   "devDependencies": {
     "btoa": "^1.2.1",
     "@haraka/eslint-config": "^2.0.4",
-    "haraka-test-fixtures": "^1.5.1"
+    "haraka-test-fixtures": "^1.6.0"
   },
   "dependencies": {
     "@haraka/email-address": "^3.1.4",

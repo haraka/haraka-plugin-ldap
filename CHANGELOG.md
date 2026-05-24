@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-### [1.2.0] - 2026-05-15
+### [1.2.0] - 2026-05-24
 
 - dep(ldapjs): update to v3
 - dep(address-rfc2821): replaced with @haraka/email-address
