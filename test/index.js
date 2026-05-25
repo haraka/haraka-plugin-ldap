@@ -7,7 +7,7 @@ const fixtures = require('haraka-test-fixtures')
 const { Address } = require('@haraka/email-address')
 const btoa = require('btoa')
 const constants = require('haraka-constants')
-const pool = require('../pool')
+const pool = require('../lib/pool')
 
 let user, plugin, server, cfg, connection
 

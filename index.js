@@ -1,11 +1,11 @@
 'use strict'
 
 const util = require('util')
-const authn = require('./authn')
-const aliases = require('./aliases')
-const rcpt_to = require('./rcpt_to')
-const authz = require('./authz')
-const LdapPool = require('./pool').LdapPool
+const authn = require('./lib/authn')
+const aliases = require('./lib/aliases')
+const rcpt_to = require('./lib/rcpt_to')
+const authz = require('./lib/authz')
+const LdapPool = require('./lib/pool').LdapPool
 
 const AUTH_COMMAND = 'AUTH'
 const AUTH_METHOD_PLAIN = 'PLAIN'

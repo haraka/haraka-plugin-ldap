@@ -6,7 +6,7 @@ const assert = require('node:assert')
 const fixtures = require('haraka-test-fixtures')
 const { Address } = require('@haraka/email-address')
 const constants = require('haraka-constants')
-const ldappool = require('../pool')
+const ldappool = require('../lib/pool')
 
 let user, plugin, connection
 
@@ -17,7 +17,7 @@ function _set_up(t, done) {
     password: 'ykaHsOzEZD',
     mail: 'user1@example.com',
   }
-  plugin = require('../authz')
+  plugin = require('../lib/authz')
   connection = fixtures.connection.createConnection()
   connection.server = {
     notes: {

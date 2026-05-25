@@ -6,7 +6,7 @@ const util = require('util')
 
 const fixtures = require('haraka-test-fixtures')
 const constants = require('haraka-constants')
-const ldappool = require('../pool')
+const ldappool = require('../lib/pool')
 
 let user, group, plugin, connection
 
@@ -26,7 +26,7 @@ function _set_up(t, done) {
       'uid=nonunique,ou=users,dc=example,dc=com',
     ],
   }
-  plugin = require('../aliases')
+  plugin = require('../lib/aliases')
   connection = fixtures.connection.createConnection()
   connection.transaction = {}
   connection.server = {

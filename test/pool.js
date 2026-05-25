@@ -3,7 +3,7 @@
 const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
-const ldappool = require('../pool')
+const ldappool = require('../lib/pool')
 
 const testUser = {
   uid: 'user1',

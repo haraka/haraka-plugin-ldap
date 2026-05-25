@@ -3,7 +3,7 @@
 const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
 
-const { escapeFilter, escapeDN } = require('../escape')
+const { escapeFilter, escapeDN } = require('../lib/escape')
 
 describe('escapeFilter (RFC 4515)', () => {
   it('passes through plain ASCII unchanged', () => {
