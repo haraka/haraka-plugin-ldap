@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.2.1] - 2026-05-24
 
-- refactor: migrate internals to async/await, internal _methods return promises
+- refactor: migrate internals to async/await, internal \_methods return promises
 - fix(security): escape filter values per RFC 4515 and DN values per RFC 4514
 - fix(pool): only add client to pool on successful bind
 - fix(pool): await unbind() in close() so next() runs after all clients are closed
