@@ -9,7 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - refactor: migrate authn/authz/aliases/rcpt*to internals to async/await
   Internal `*\*` methods now return Promises
 - fix(security): escape filter values per RFC 4515 and DN values per RFC 4514
-- fix: return after search_error; guard final callback against double invocation
 - fix(pool): only add client to pool on successful bind
 - fix(pool): await unbind() in close() so next() runs after all clients are closed
 - doc(README): clarify tls_rejectUnauthorized default
