@@ -26,7 +26,9 @@ exports._verify_user = async function (userdn, passwd, connection) {
     await bindAsync(client, userdn, passwd)
     return true
   } catch (err) {
-    connection.logdebug(`Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`)
+    connection.logdebug(
+      `Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`,
+    )
     return false
   } finally {
     // fire-and-forget — awaiting unbind can hang when the bind already

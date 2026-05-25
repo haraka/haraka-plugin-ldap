@@ -4,11 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-
 ### [1.2.1] - 2026-05-24
 
-- refactor: migrate authn/authz/aliases/rcpt_to internals to async/await
-  Internal `_*` methods now return Promises
+- refactor: migrate authn/authz/aliases/rcpt*to internals to async/await
+  Internal `*\*` methods now return Promises
 - fix(security): escape filter values per RFC 4515 and DN values per RFC 4514
 - fix: return after search_error; guard final callback against double invocation
 - fix(pool): only add client to pool on successful bind
