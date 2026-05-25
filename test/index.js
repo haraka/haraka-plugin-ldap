@@ -7,7 +7,7 @@ const fixtures = require('haraka-test-fixtures')
 const { Address } = require('@haraka/email-address')
 const btoa = require('btoa')
 const constants = require('haraka-constants')
-const pool = require('../pool')
+const pool = require('../lib/pool')
 
 let user, plugin, server, cfg, connection
 
@@ -177,13 +177,7 @@ describe('aliases', () => {
         done()
       },
       connection,
-      [
-        {
-          address: () => {
-            return 'forwarder@example.com'
-          },
-        },
-      ],
+      [{ address: 'forwarder@example.com' }],
     )
   })
 
@@ -212,13 +206,7 @@ describe('check_rcpt', () => {
         done()
       },
       connection,
-      [
-        {
-          address: () => {
-            return 'user1@example.com'
-          },
-        },
-      ],
+      [{ address: 'user1@example.com' }],
     )
   })
 
@@ -288,7 +276,7 @@ describe('_load_ldap_ini', () => {
     plugin._init_ldappool(() => {
       plugin._load_ldap_ini()
       assert.equal('uid=user1,ou=users,dc=example,dc=com', server.notes.ldappool.config.binddn)
-      assert.equal('ykaHsOzEZD', server.notes.ldappool.config.bindpw)
+      assert.equal('REPLACE_ME', server.notes.ldappool.config.bindpw)
       assert.equal('example.com', server.notes.ldappool.config.basedn)
       assert.equal('base', server.notes.ldappool.config.scope)
     }, server)
@@ -300,7 +288,7 @@ describe('_load_ldap_ini', () => {
     plugin._load_ldap_ini()
     const conf = plugin._tmp_pool_config.main
     assert.equal('uid=user1,ou=users,dc=example,dc=com', conf.binddn)
-    assert.equal('ykaHsOzEZD', conf.bindpw)
+    assert.equal('REPLACE_ME', conf.bindpw)
     assert.equal('example.com', conf.basedn)
     assert.equal('base', conf.scope)
     done()
@@ -323,7 +311,7 @@ describe('_init_ldappool', () => {
     plugin._init_ldappool(() => {
       const conf = plugin._pool.config
       assert.equal('uid=user1,ou=users,dc=example,dc=com', conf.binddn)
-      assert.equal('ykaHsOzEZD', conf.bindpw)
+      assert.equal('REPLACE_ME', conf.bindpw)
       assert.equal('example.com', conf.basedn)
       done()
     }, server)

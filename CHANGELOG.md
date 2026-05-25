@@ -4,6 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.2.1] - 2026-05-24
+
+- refactor: migrate internals to async/await, internal \_methods return promises
+- fix(security): escape filter values per RFC 4515 and DN values per RFC 4514
+- fix(pool): only add client to pool on successful bind
+- fix(pool): await unbind() in close() so next() runs after all clients are closed
+- doc(README): clarify tls_rejectUnauthorized default
+- config: replace sample bindpw with placeholder
+
 ### [1.2.0] - 2026-05-24
 
 - dep(ldapjs): update to v3
@@ -69,3 +78,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.3]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.3
 [1.1.4]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.1.4
 [1.2.0]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.2.0
+[1.2.1]: https://github.com/haraka/haraka-plugin-ldap/releases/tag/v1.2.1

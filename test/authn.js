@@ -4,7 +4,7 @@ const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
 const fixtures = require('haraka-test-fixtures')
-const ldappool = require('../pool')
+const ldappool = require('../lib/pool')
 
 // test user data as defined in testdata.ldif
 const users = [
@@ -37,7 +37,7 @@ const users = [
 let plugin, connection
 
 function _set_up(t, done) {
-  plugin = require('../authn')
+  plugin = require('../lib/authn')
   connection = fixtures.connection.createConnection()
   connection.server = {
     notes: {
@@ -58,58 +58,23 @@ function _set_up(t, done) {
 describe('_verify_user', () => {
   beforeEach(_set_up)
 
-  it('verifies test data', (t, done) => {
-    let counter = 0
+  it('verifies test data', async () => {
     for (const user of users) {
-      plugin._verify_user(
-        user.dn,
-        user.password,
-        (result) => {
-          assert.equal(true, result)
-          counter++
-          if (counter === users.length) done()
-        },
-        connection,
-      )
+      assert.equal(true, await plugin._verify_user(user.dn, user.password, connection))
     }
   })
 
-  it('safety check: wrong password fails', (t, done) => {
-    plugin._verify_user(
-      users[0].dn,
-      'wrong',
-      function (ok) {
-        assert.equal(false, ok)
-        done()
-      },
-      connection,
-    )
+  it('safety check: wrong password fails', async () => {
+    assert.equal(false, await plugin._verify_user(users[0].dn, 'wrong', connection))
   })
 
-  it('safety check: invalid dn fails', (t, done) => {
-    plugin._verify_user(
-      'wrong',
-      'wrong',
-      function (ok) {
-        assert.equal(false, ok)
-        done()
-      },
-      connection,
-    )
+  it('safety check: invalid dn fails', async () => {
+    assert.equal(false, await plugin._verify_user('wrong', 'wrong', connection))
   })
 
-  it('no pool', (t, done) => {
+  it('no pool', async () => {
     connection.server.notes.ldappool = undefined
-    const user = users[0]
-    plugin._verify_user(
-      user.dn,
-      user.password,
-      function (result) {
-        assert.equal(false, result)
-        done()
-      },
-      connection,
-    )
+    assert.equal(false, await plugin._verify_user(users[0].dn, users[0].password, connection))
   })
 })
 
@@ -138,100 +103,55 @@ describe('_get_search_conf', () => {
     assert.equal(opts.attributes.toString(), ['dn'].toString())
     done()
   })
+
+  it('escapes %u substitutions per RFC 4515', (t, done) => {
+    const opts = plugin._get_search_conf('*)(uid=*', connection)
+    assert.equal(opts.filter, '(&(objectclass=*)(uid=\\2a\\29\\28uid=\\2a))')
+    done()
+  })
 })
 
 describe('get_dn_for_uid', () => {
   beforeEach(_set_up)
 
-  it('user 1 dn2uid', (t, done) => {
-    plugin._get_dn_for_uid(
-      users[0].uid,
-      function (err, userdn) {
-        assert.equal(null, err)
-        assert.equal(userdn.toString(), users[0].dn)
-        done()
-      },
-      connection,
-    )
+  it('user 1 dn2uid', async () => {
+    const userdn = await plugin._get_dn_for_uid(users[0].uid, connection)
+    assert.equal(userdn.toString(), users[0].dn)
   })
 
-  it('user 2 dn2uid', (t, done) => {
-    plugin._get_dn_for_uid(
-      users[1].uid,
-      function (err, userdn) {
-        assert.equal(null, err)
-        assert.equal(userdn.toString(), users[1].dn)
-        done()
-      },
-      connection,
-    )
+  it('user 2 dn2uid', async () => {
+    const userdn = await plugin._get_dn_for_uid(users[1].uid, connection)
+    assert.equal(userdn.toString(), users[1].dn)
   })
 
-  it('nonunique dn2uid', (t, done) => {
-    plugin._get_dn_for_uid(
-      'nonunique',
-      function (err, userdn) {
-        assert.equal(null, err)
-        assert.equal(2, userdn.length)
-        done()
-      },
-      connection,
-    )
+  it('nonunique dn2uid', async () => {
+    const userdn = await plugin._get_dn_for_uid('nonunique', connection)
+    assert.equal(2, userdn.length)
   })
 
-  it('invalid uid', (t, done) => {
-    plugin._get_dn_for_uid(
-      'doesntexist',
-      function (err, userdn) {
-        assert.equal(null, err)
-        assert.equal(0, userdn.length)
-        done()
-      },
-      connection,
-    )
+  it('invalid uid', async () => {
+    const userdn = await plugin._get_dn_for_uid('doesntexist', connection)
+    assert.equal(0, userdn.length)
   })
 
-  it('invalid search filter', (t, done) => {
-    const user = users[0]
+  it('invalid search filter', async () => {
     const pool = connection.server.notes.ldappool
     pool.config.authn.searchfilter = '(&(objectclass=*)(uid=%u'
-    plugin._get_dn_for_uid(
-      user.uid,
-      function (err, userdn) {
-        assert.equal('unbalanced parentheses', err.message)
-        assert.equal(undefined, userdn)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._get_dn_for_uid(users[0].uid, connection), {
+      message: 'unbalanced parentheses',
+    })
   })
 
-  it('invalid basedn', (t, done) => {
-    const user = users[0]
+  it('invalid basedn', async () => {
     connection.server.notes.ldappool.config.basedn = 'invalid'
-    plugin._get_dn_for_uid(
-      user.uid,
-      function (err, userdn) {
-        assert.ok(err)
-        assert.equal(undefined, userdn)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._get_dn_for_uid(users[0].uid, connection))
   })
 
-  it('no pool', (t, done) => {
+  it('no pool', async () => {
     connection.server.notes.ldappool = undefined
-    const user = users[0]
-    plugin._get_dn_for_uid(
-      user.uid,
-      function (err, userdn) {
-        assert.equal('LDAP Pool not found!', err)
-        assert.equal(undefined, userdn)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._get_dn_for_uid(users[0].uid, connection), {
+      message: 'LDAP Pool not found!',
+    })
   })
 })
 
@@ -240,7 +160,7 @@ describe('check_plain_passwd', () => {
 
   for (const user of users.slice(0, 2)) {
     it(`validates user ${user.uid}`, (t, done) => {
-      plugin.check_plain_passwd(connection, user.uid, user.password, function (result) {
+      plugin.check_plain_passwd(connection, user.uid, user.password, (result) => {
         assert.equal(true, result)
         done()
       })
@@ -249,7 +169,7 @@ describe('check_plain_passwd', () => {
 
   for (const user of users.slice(2)) {
     it(`rejects user ${user.uid}`, (t, done) => {
-      plugin.check_plain_passwd(connection, user.uid, user.password, function (result) {
+      plugin.check_plain_passwd(connection, user.uid, user.password, (result) => {
         assert.equal(false, result)
         done()
       })
@@ -257,7 +177,7 @@ describe('check_plain_passwd', () => {
   }
 
   it(`rejects invalid user`, (t, done) => {
-    plugin.check_plain_passwd(connection, 'invalid', 'invalid', function (result) {
+    plugin.check_plain_passwd(connection, 'invalid', 'invalid', (result) => {
       assert.equal(false, result)
       done()
     })
@@ -269,7 +189,7 @@ describe('check_plain_passwd', () => {
         'uid=%u,ou=users,dc=example,dc=com',
         'uid=%u,ou=people,dc=example,dc=com',
       ]
-      plugin.check_plain_passwd(connection, user.uid, user.password, function (result) {
+      plugin.check_plain_passwd(connection, user.uid, user.password, (result) => {
         assert.strictEqual(true, result)
         done()
       })
@@ -281,7 +201,7 @@ describe('check_plain_passwd', () => {
       'uid=%u,ou=users,dc=example,dc=com',
       'uid=%u,ou=people,dc=example,dc=com',
     ]
-    plugin.check_plain_passwd(connection, 'invalid', 'invalid', function (result) {
+    plugin.check_plain_passwd(connection, 'invalid', 'invalid', (result) => {
       assert.equal(false, result)
       done()
     })

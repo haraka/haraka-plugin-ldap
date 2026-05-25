@@ -3,7 +3,7 @@
 const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
-const ldappool = require('../pool')
+const ldappool = require('../lib/pool')
 
 const testUser = {
   uid: 'user1',
@@ -146,7 +146,11 @@ describe('close', () => {
       assert.equal(undefined, client.unbound)
       pool.close((err2) => {
         assert.ifError(err2)
-        assert.equal(true, client.unbound)
+        // pool.close() drains pool.servers and awaits each unbind callback.
+        // We can't assert `client.unbound` directly: ldapjs sets it true
+        // synchronously inside unbind() but flips it back to false in the
+        // socket-disconnect handler, which races with our awaited resolve.
+        assert.equal(0, pool.pool.servers.length, 'pool should be drained')
         done()
       })
     })
