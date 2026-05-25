@@ -63,10 +63,19 @@ class LdapPool {
   close(next) {
     if (this.pool.servers.length <= 0) return next()
 
-    while (this.pool.servers.length > 0) {
-      this.pool.servers.shift().unbind()
-      if (this.pool.servers.length === 0) next()
-    }
+    const clients = this.pool.servers.splice(0, this.pool.servers.length)
+    Promise.all(
+      clients.map(
+        (client) =>
+          new Promise((resolve) => {
+            try {
+              client.unbind((err) => resolve(err || null))
+            } catch (e) {
+              resolve(e)
+            }
+          }),
+      ),
+    ).then(() => next())
   }
 
   _bind_default(next) {
@@ -96,7 +105,7 @@ class LdapPool {
     }
 
     this._bind_default((err, client) => {
-      pool.servers.push(client)
+      if (!err && client) pool.servers.push(client)
       next(err, client)
     })
   }

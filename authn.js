@@ -2,32 +2,39 @@
 
 const util = require('util')
 
-exports._verify_user = (userdn, passwd, cb, connection) => {
-  const pool = connection.server.notes.ldappool
+const { escapeFilter, escapeDN } = require('./escape')
+const { bindAsync, searchAll, poolGet } = require('./ldap-promise')
 
-  function onError(err) {
-    connection.logerror(`Could not verify userdn and password: ${util.inspect(err)}`)
-    cb(false)
+exports._verify_user = async function (userdn, passwd, connection) {
+  const pool = connection.server.notes.ldappool
+  if (!pool) {
+    connection.logerror(`Could not verify userdn and password: LDAP Pool not found`)
+    return false
   }
 
-  if (!pool) return onError('LDAP Pool not found')
-
-  pool._create_client((err, client) => {
-    if (err) return onError(err)
-
-    client.bind(userdn, passwd, (err2) => {
-      client.unbind()
-
-      if (err2) {
-        connection.logdebug(
-          `Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`,
-        )
-        return cb(false)
-      }
-
-      cb(true)
+  let client
+  try {
+    client = await new Promise((resolve, reject) => {
+      pool._create_client((err, c) => (err ? reject(err) : resolve(c)))
     })
-  })
+  } catch (err) {
+    connection.logerror(`Could not verify userdn and password: ${util.inspect(err)}`)
+    return false
+  }
+
+  try {
+    await bindAsync(client, userdn, passwd)
+    return true
+  } catch (err) {
+    connection.logdebug(`Login failed, could not bind ${util.inspect(userdn)}: ${util.inspect(err)}`)
+    return false
+  } finally {
+    // fire-and-forget — awaiting unbind can hang when the bind already
+    // closed the socket. ldapjs sets `unbound=true` synchronously in unbind().
+    try {
+      client.unbind()
+    } catch (ignore) {}
+  }
 }
 
 exports._get_search_conf = (user, connection) => {
@@ -35,89 +42,60 @@ exports._get_search_conf = (user, connection) => {
   const filter = pool.config.authn.searchfilter || '(&(objectclass=*)(uid=%u))'
   return {
     basedn: pool.config.authn.basedn || pool.config.basedn,
-    filter: filter.replace(/%u/g, user),
+    filter: filter.replace(/%u/g, escapeFilter(user)),
     scope: pool.config.authn.scope || pool.config.scope,
     attributes: ['dn'],
   }
 }
 
-exports._get_dn_for_uid = function (uid, callback, connection) {
+exports._get_dn_for_uid = async function (uid, connection) {
   const pool = connection.server.notes.ldappool
-  function onError(err) {
+  if (!pool) {
     connection.logerror(`Could not get DN for UID ${uid}`)
-    connection.logdebug(`: ${util.inspect(err)}`)
-    callback(err)
+    throw new Error('LDAP Pool not found!')
   }
-  if (!pool) return onError('LDAP Pool not found!')
 
-  pool.get((err, client) => {
-    if (err) return onError(err)
-
+  try {
+    const client = await poolGet(pool)
     const config = this._get_search_conf(uid, connection)
     connection.logdebug(`Getting DN for uid: ${util.inspect(config)}`)
-    try {
-      client.search(config.basedn, config, (search_error, res) => {
-        if (search_error) onError(search_error)
-        const userdn = []
-        res.on('searchEntry', (entry) => {
-          userdn.push(String(entry.dn))
-        })
-        res.on('error', onError)
-        res.on('end', () => {
-          callback(null, userdn)
-        })
-      })
-    } catch (e) {
-      onError(e)
-    }
-  })
+    const entries = await searchAll(client, config.basedn, config)
+    return entries.map((entry) => String(entry.dn))
+  } catch (err) {
+    connection.logerror(`Could not get DN for UID ${uid}`)
+    connection.logdebug(`: ${util.inspect(err)}`)
+    throw err
+  }
 }
 
-exports.check_plain_passwd = function (connection, user, passwd, cb) {
+exports.check_plain_passwd = async function (connection, user, passwd, cb) {
   if (Array.isArray(connection.server.notes.ldappool.config.authn.dn)) {
     return this.check_plain_passwd_dn(connection, user, passwd, cb)
   }
 
   connection.logdebug(`Looking up user ${util.inspect(user)} by search.`)
-  this._get_dn_for_uid(
-    user,
-    (err, userdn) => {
-      if (err) {
-        connection.logerror(`Could not use LDAP for password check: ${util.inspect(err)}`)
-        cb(false)
-      } else if (userdn.length !== 1) {
-        connection.logdebug(
-          `None or nonunique LDAP search result for user ${util.inspect(user)}, access denied`,
-        )
-        cb(false)
-      } else {
-        this._verify_user(userdn[0], passwd, cb, connection)
-      }
-    },
-    connection,
-  )
+  let userdn
+  try {
+    userdn = await this._get_dn_for_uid(user, connection)
+  } catch (err) {
+    connection.logerror(`Could not use LDAP for password check: ${util.inspect(err)}`)
+    return cb(false)
+  }
+  if (userdn.length !== 1) {
+    connection.logdebug(
+      `None or nonunique LDAP search result for user ${util.inspect(user)}, access denied`,
+    )
+    return cb(false)
+  }
+  cb(await this._verify_user(userdn[0], passwd, connection))
 }
 
-exports.check_plain_passwd_dn = function (connection, user, passwd, cb) {
+exports.check_plain_passwd_dn = async function (connection, user, passwd, cb) {
   connection.logdebug(`Looking up user ${util.inspect(user)} by DN.`)
-
-  let iter = 0
-  let cbCalled = false
-
-  function cbOnce(result) {
-    iter++
-    if (cbCalled) return
-    if (result) {
-      cbCalled = true
-      return cb(result)
-    }
-    if (iter === connection.server.notes.ldappool.config.authn.dn.length) {
-      cbCalled = true
-      cb(result)
-    }
-  }
-
-  for (const dn of connection.server.notes.ldappool.config.authn.dn) {
-    this._verify_user(dn.replace(/%u/g, user), passwd, cbOnce, connection)
-  }
+  const dns = connection.server.notes.ldappool.config.authn.dn
+  // Verify against each candidate DN in parallel; succeed on the first match.
+  const results = await Promise.all(
+    dns.map((dn) => this._verify_user(dn.replace(/%u/g, escapeDN(user)), passwd, connection)),
+  )
+  cb(results.some((ok) => ok))
 }

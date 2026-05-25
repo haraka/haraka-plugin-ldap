@@ -24,9 +24,10 @@ The following options are configurable:
 - `tls_enabled`: _optional_, default: `tls_enabled=false`
   Enable or disable TLS. If enabled, all LDAP connections will be secured first
   by calling starttls.
-- `tls_rejectUnauthorized`: _optional_, default: `tls_rejectUnauthorized`false`
+- `tls_rejectUnauthorized`: _optional_, default: unset (Node/ldapjs default, which is `true`)
   Enable or disable rejection of secured connections without valid server certificate.
   This is as _rejectUnauthorized_ from the [node.js server API as used by ldapjs](https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener).
+  When this option is omitted, no `tlsOptions` is passed to ldapjs and certificate verification follows Node's secure defaults. Set it explicitly only if you need to relax (`false`) or pin (`true`) the behavior.
 - `scope`: _optional_, default: `cope=sub`
   This defines the scope of the LDAP search operation, like _base_ or _sub_.
   This is the same as _scope_ from [ldapjs](http://ldapjs.org/client.html).

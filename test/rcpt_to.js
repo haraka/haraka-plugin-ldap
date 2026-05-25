@@ -40,52 +40,26 @@ function _set_up(t, done) {
 describe('_verify_existence', () => {
   beforeEach(_set_up)
 
-  it('default user', (t, done) => {
-    plugin._verify_existence(
-      user.mail,
-      function (err, result) {
-        assert.equal(true, result)
-        done()
-      },
-      connection,
-    )
+  it('default user', async () => {
+    assert.equal(true, await plugin._verify_existence(user.mail, connection))
   })
 
-  it('invalid address', (t, done) => {
-    plugin._verify_existence(
-      'unknown',
-      function (err, result) {
-        assert.equal(false, result)
-        done()
-      },
-      connection,
-    )
+  it('invalid address', async () => {
+    assert.equal(false, await plugin._verify_existence('unknown', connection))
   })
 
-  it('invalid search filter', (t, done) => {
+  it('invalid search filter', async () => {
     connection.server.notes.ldappool.config.rcpt_to.searchfilter = '(&(objectclass=*)(|(mail=%a'
-    plugin._verify_existence(
-      user.mail,
-      function (err, result) {
-        assert.equal('unbalanced parentheses', err.message)
-        assert.equal(false, result)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._verify_existence(user.mail, connection), {
+      message: 'unbalanced parentheses',
+    })
   })
 
-  it('no pool', (t, done) => {
+  it('no pool', async () => {
     connection.server.notes.ldappool = undefined
-    plugin._verify_existence(
-      user.mail,
-      function (err, userdn) {
-        assert.equal('LDAP Pool not found!', err)
-        assert.equal(false, userdn)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._verify_existence(user.mail, connection), {
+      message: 'LDAP Pool not found!',
+    })
   })
 })
 
@@ -114,6 +88,12 @@ describe('_get_search_conf', () => {
     assert.equal(opts.attributes.toString(), ['dn'].toString())
     done()
   })
+
+  it('escapes %a substitutions per RFC 4515', (t, done) => {
+    const opts = plugin._get_search_conf('*)(uid=*', connection)
+    assert.equal(opts.filter, '(&(objectclass=*)(mailLocalAddress=\\2a\\29\\28uid=\\2a))')
+    done()
+  })
 })
 
 describe('check_rcpt', () => {
@@ -126,13 +106,7 @@ describe('check_rcpt', () => {
         done()
       },
       connection,
-      [
-        {
-          address: () => {
-            return 'user1@example.com'
-          },
-        },
-      ],
+      [{ address: 'user1@example.com' }],
     )
   })
 
@@ -144,13 +118,7 @@ describe('check_rcpt', () => {
         done()
       },
       connection,
-      [
-        {
-          address: () => {
-            return 'user1@example.com'
-          },
-        },
-      ],
+      [{ address: 'user1@example.com' }],
     )
   })
 
@@ -172,13 +140,7 @@ describe('check_rcpt', () => {
         done()
       },
       connection,
-      [
-        {
-          address: () => {
-            return 'unknown@address'
-          },
-        },
-      ],
+      [{ address: 'unknown@address' }],
     )
   })
 })

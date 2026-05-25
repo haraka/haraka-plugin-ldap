@@ -40,73 +40,33 @@ function _set_up(t, done) {
 describe('_verify_address', () => {
   beforeEach(_set_up)
 
-  it('1 entry', (t, done) => {
-    plugin._verify_address(
-      user.uid,
-      user.mail,
-      function (err, result) {
-        assert.equal(true, result)
-        done()
-      },
-      connection,
-    )
+  it('1 entry', async () => {
+    assert.equal(true, await plugin._verify_address(user.uid, user.mail, connection))
   })
 
-  it('0 entries', (t, done) => {
-    plugin._verify_address(
-      'alien',
-      'unknown',
-      function (err, result) {
-        assert.ifError(err)
-        assert.equal(false, result)
-        done()
-      },
-      connection,
-    )
+  it('0 entries', async () => {
+    assert.equal(false, await plugin._verify_address('alien', 'unknown', connection))
   })
 
-  it('2 entries', (t, done) => {
+  it('2 entries', async () => {
     const pool = connection.server.notes.ldappool
     pool.config.authz.searchfilter = '(&(objectclass=*)(|(uid=%u)(uid=user2)))'
-    plugin._verify_address(
-      'user1',
-      'who cares',
-      function (err, result) {
-        assert.ifError(err)
-        assert.equal(true, result)
-        done()
-      },
-      connection,
-    )
+    assert.equal(true, await plugin._verify_address('user1', 'who cares', connection))
   })
 
-  it('invalid search filter', (t, done) => {
+  it('invalid search filter', async () => {
     const pool = connection.server.notes.ldappool
     pool.config.authz.searchfilter = '(&(objectclass=*)(|(uid=%u'
-    plugin._verify_address(
-      user.uid,
-      user.mail,
-      function (err, result) {
-        assert.equal('unbalanced parentheses', err.message)
-        assert.equal(false, result)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._verify_address(user.uid, user.mail, connection), {
+      message: 'unbalanced parentheses',
+    })
   })
 
-  it('no pool', (t, done) => {
+  it('no pool', async () => {
     connection.server.notes.ldappool = undefined
-    plugin._verify_address(
-      user.uid,
-      user.mail,
-      function (err, userdn) {
-        assert.equal('LDAP Pool not found!', err)
-        assert.equal(false, userdn)
-        done()
-      },
-      connection,
-    )
+    await assert.rejects(plugin._verify_address(user.uid, user.mail, connection), {
+      message: 'LDAP Pool not found!',
+    })
   })
 })
 
@@ -133,6 +93,15 @@ describe('_get_search_conf', () => {
     assert.equal(opts.filter, '(&(objectclass=posixAccount)(uid=testUid)(mail=testMail))')
     assert.equal(opts.scope, 'one two three')
     assert.equal(opts.attributes.toString(), ['dn'].toString())
+    done()
+  })
+
+  it('escapes %u and %a substitutions per RFC 4515', (t, done) => {
+    const opts = plugin._get_search_conf('*)(uid=*', 'a)(b', connection)
+    assert.equal(
+      opts.filter,
+      '(&(objectclass=*)(uid=\\2a\\29\\28uid=\\2a)(mailLocalAddress=a\\29\\28b))',
+    )
     done()
   })
 })

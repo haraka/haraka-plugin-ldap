@@ -3,44 +3,33 @@
 const util = require('util')
 const constants = require('haraka-constants')
 
-exports._verify_existence = function (address, callback, connection) {
+const { escapeFilter } = require('./escape')
+const { searchAll, poolGet } = require('./ldap-promise')
+
+exports._verify_existence = async function (address, connection) {
   const pool = connection.server.notes.ldappool
-  function onError(err) {
+  if (!pool) {
     connection.logerror(`Could not verify address ${address}`)
-    connection.logdebug(`${util.inspect(err)}`)
-    callback(err, false)
+    throw new Error('LDAP Pool not found!')
   }
-  if (!pool) return onError('LDAP Pool not found!')
 
-  pool.get((err, client) => {
-    if (err) return onError(err)
-
+  try {
+    const client = await poolGet(pool)
     const config = this._get_search_conf(address, connection)
     connection.logdebug(`Verifying existence: ${util.inspect(config)}`)
-    try {
-      client.search(config.basedn, config, (search_error, res) => {
-        if (search_error) {
-          onError(search_error)
-        }
-        let entries = 0
-        res.on('searchEntry', (entry) => {
-          entries++
-        })
-        res.on('error', onError)
-        res.on('end', () => {
-          callback(null, entries > 0)
-        })
-      })
-    } catch (e) {
-      onError(e)
-    }
-  })
+    const entries = await searchAll(client, config.basedn, config)
+    return entries.length > 0
+  } catch (err) {
+    connection.logerror(`Could not verify address ${address}`)
+    connection.logdebug(`${util.inspect(err)}`)
+    throw err
+  }
 }
 
 exports._get_search_conf = (address, connection) => {
   const pool = connection.server.notes.ldappool
   let filter = pool.config.rcpt_to.searchfilter || '(&(objectclass=*)(mail=%a))'
-  filter = filter.replace(/%a/g, address)
+  filter = filter.replace(/%a/g, escapeFilter(address))
   return {
     basedn: pool.config.rcpt_to.basedn || pool.config.basedn,
     filter,
@@ -49,26 +38,18 @@ exports._get_search_conf = (address, connection) => {
   }
 }
 
-exports.check_rcpt = function (next, connection, params) {
+exports.check_rcpt = async function (next, connection, params) {
   if (!params || !params[0] || !params[0].address) {
     connection.logerror(
       `Ignoring invalid call. Given connection.transaction: ${util.inspect(connection.transaction)}`,
     )
     return next()
   }
-  const rcpt = params[0].address
-  this._verify_existence(
-    rcpt,
-    (err, result) => {
-      if (err) {
-        connection.logerror(`Could not use LDAP for address check: ${err.message}`)
-        next(constants.denysoft)
-      } else if (result) {
-        next(constants.ok)
-      } else {
-        next(constants.deny)
-      }
-    },
-    connection,
-  )
+  try {
+    const exists = await this._verify_existence(params[0].address, connection)
+    next(exists ? constants.ok : constants.deny)
+  } catch (err) {
+    connection.logerror(`Could not use LDAP for address check: ${err.message}`)
+    next(constants.denysoft)
+  }
 }

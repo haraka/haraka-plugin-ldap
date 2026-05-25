@@ -3,45 +3,33 @@
 const util = require('util')
 const constants = require('haraka-constants')
 
-exports._verify_address = function (uid, address, callback, connection) {
+const { escapeFilter } = require('./escape')
+const { searchAll, poolGet } = require('./ldap-promise')
+
+exports._verify_address = async function (uid, address, connection) {
   const pool = connection.server.notes.ldappool
-  const onError = (err) => {
+  if (!pool) {
     connection.logerror(`Could not verify address ${address}  for UID ${uid}`)
-    connection.logdebug(`${util.inspect(err)}`)
-    callback(err, false)
+    throw new Error('LDAP Pool not found!')
   }
 
-  if (!pool) return onError('LDAP Pool not found!')
-
-  pool.get((err, client) => {
-    if (err) return onError(err)
-
+  try {
+    const client = await poolGet(pool)
     const config = this._get_search_conf(uid, address, connection)
     connection.logdebug(`Verifying address: ${util.inspect(config)}`)
-    try {
-      client.search(config.basedn, config, (search_error, res) => {
-        if (search_error) {
-          onError(search_error)
-        }
-        let entries = 0
-        res.on('searchEntry', (entry) => {
-          entries++
-        })
-        res.on('error', onError)
-        res.on('end', () => {
-          callback(null, entries > 0)
-        })
-      })
-    } catch (e) {
-      return onError(e)
-    }
-  })
+    const entries = await searchAll(client, config.basedn, config)
+    return entries.length > 0
+  } catch (err) {
+    connection.logerror(`Could not verify address ${address}  for UID ${uid}`)
+    connection.logdebug(`${util.inspect(err)}`)
+    throw err
+  }
 }
 
 exports._get_search_conf = (user, address, connection) => {
   const pool = connection.server.notes.ldappool
   let filter = pool.config.authz.searchfilter || '(&(objectclass=*)(uid=%u)(mail=%a))'
-  filter = filter.replace(/%u/g, user).replace(/%a/g, address)
+  filter = filter.replace(/%u/g, escapeFilter(user)).replace(/%a/g, escapeFilter(address))
   return {
     basedn: pool.config.authz.basedn || pool.config.basedn,
     filter,
@@ -50,7 +38,7 @@ exports._get_search_conf = (user, address, connection) => {
   }
 }
 
-exports.check_authz = function (next, connection, params) {
+exports.check_authz = async function (next, connection, params) {
   if (
     !connection.notes ||
     !connection.notes.auth_user ||
@@ -67,22 +55,15 @@ exports.check_authz = function (next, connection, params) {
   }
   const uid = connection.notes.auth_user
   const address = params[0].address
-  this._verify_address(
-    uid,
-    address,
-    (err, verified) => {
-      if (err) {
-        connection.logerror(`Could not use LDAP to match address to uid: ${err.message}`)
-        next(constants.denysoft)
-      } else if (verified) {
-        next()
-      } else {
-        next(
-          constants.deny,
-          `User ${util.inspect(uid)} not allowed to send from address ${util.inspect(address)}.`,
-        )
-      }
-    },
-    connection,
-  )
+  try {
+    const verified = await this._verify_address(uid, address, connection)
+    if (verified) return next()
+    next(
+      constants.deny,
+      `User ${util.inspect(uid)} not allowed to send from address ${util.inspect(address)}.`,
+    )
+  } catch (err) {
+    connection.logerror(`Could not use LDAP to match address to uid: ${err.message}`)
+    next(constants.denysoft)
+  }
 }
