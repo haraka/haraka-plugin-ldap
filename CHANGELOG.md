@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+- test: refactored against test-fixtures 1.7.0
+
 ### [1.2.1] - 2026-05-24
 
 - refactor: migrate internals to async/await, internal \_methods return promises

@@ -9,17 +9,18 @@
     "test"
   ],
   "main": "index.js",
-  "directories": {},
   "scripts": {
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "format": "npm run prettier:fix && npm run lint:fix",
     "lint": "npx eslint *.js test/*.js",
     "lint:fix": "npx eslint *.js test/*.js --fix",
     "prettier": "npx prettier . --check",
     "prettier:fix": "npx prettier . --write --log-level=warn",
+    "qlty": "qlty smells --all",
     "test": "node --test --test-force-exit test/*.js",
+    "test:coverage": "node --test --test-force-exit --experimental-test-coverage --test-coverage-exclude=package.json --test-coverage-exclude=test/*.js test/*.js",
     "versions": "npx npm-dep-mgr check",
-    "versions:fix": "npx npm-dep-mgr update",
-    "test:coverage": "node --test --test-force-exit --experimental-test-coverage --test-coverage-exclude=package.json --test-coverage-exclude=test/*.js test/*.js"
+    "versions:fix": "npx npm-dep-mgr update"
   },
   "keywords": [
     "haraka",
@@ -41,7 +42,7 @@
   "devDependencies": {
     "btoa": "^1.2.1",
     "@haraka/eslint-config": "^2.0.4",
-    "haraka-test-fixtures": "^1.6.0"
+    "haraka-test-fixtures": "^1.7.0"
   },
   "dependencies": {
     "@haraka/email-address": "^3.1.4",

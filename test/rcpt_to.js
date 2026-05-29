@@ -3,7 +3,7 @@
 const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
-const fixtures = require('haraka-test-fixtures')
+const { makeConnection } = require('haraka-test-fixtures')
 const constants = require('haraka-constants')
 const ldappool = require('../lib/pool')
 
@@ -17,7 +17,7 @@ function _set_up(t, done) {
     mail: 'user1@example.com',
   }
   plugin = require('../lib/rcpt_to')
-  connection = fixtures.connection.createConnection()
+  connection = makeConnection()
   connection.transaction = {}
   connection.server = {
     notes: {
