@@ -3,7 +3,7 @@
 const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
-const fixtures = require('haraka-test-fixtures')
+const { makeConnection, makePlugin } = require('haraka-test-fixtures')
 const { Address } = require('@haraka/email-address')
 const btoa = require('btoa')
 const constants = require('haraka-constants')
@@ -18,7 +18,7 @@ function _set_up() {
     password: 'ykaHsOzEZD',
     mail: 'user1@example.com',
   }
-  plugin = new fixtures.plugin('ldap')
+  plugin = makePlugin('ldap', { register: false })
   server = { notes: {} }
   cfg = {
     main: {
@@ -27,7 +27,7 @@ function _set_up() {
       basedn: 'dc=example,dc=com',
     },
   }
-  connection = fixtures.connection.createConnection()
+  connection = makeConnection()
   connection.server = {
     notes: {
       ldappool: new pool.LdapPool({

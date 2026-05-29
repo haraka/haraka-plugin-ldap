@@ -3,7 +3,7 @@
 const { describe, it, beforeEach } = require('node:test')
 const assert = require('node:assert')
 
-const fixtures = require('haraka-test-fixtures')
+const { makeConnection } = require('haraka-test-fixtures')
 const ldappool = require('../lib/pool')
 
 // test user data as defined in testdata.ldif
@@ -38,7 +38,7 @@ let plugin, connection
 
 function _set_up(t, done) {
   plugin = require('../lib/authn')
-  connection = fixtures.connection.createConnection()
+  connection = makeConnection()
   connection.server = {
     notes: {
       ldappool: new ldappool.LdapPool({

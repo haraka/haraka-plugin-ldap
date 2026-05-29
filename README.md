@@ -1,7 +1,6 @@
-[![Build Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
-
 # haraka-plugin-ldap
+
+[![Test][ci-img]][ci-url] [![Cover][cov-img]][cov-url] [![Qlty][qlty-img]][qlty-url]
 
 This is an universal LDAP plugin for Haraka. It supports aliases, authentication, authorization and recipient lookup. Check it out on [github](https://github.com/tasansga/haraka-ldap) or [npm](https://www.npmjs.com/package/haraka-plugin-ldap).
 
@@ -198,7 +197,11 @@ subattribute = mailLocalAddress
 
 The search filter applies only to groups (`objectclass=groupOfNames`) with an email address of the alias email (`mailLocalAddress=%a`). Then the plugin checks the group's attribute `member` and assumes it contains a DN (`attribute_is_dn = true`) and looks up and returns every member DN's attribute `mailLocalAddress`. In other words, email to `postmaster@example.com` would be send to `user@example.com`. Of course a group may contain multiple members, in which case every member with a valid `mailLocalAddress` would receive the email.
 
+<!-- leave these buried at the bottom of the document -->
+
 [ci-img]: https://github.com/haraka/haraka-plugin-ldap/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-ldap/actions/workflows/ci.yml
-[clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-ldap/badges/gpa.svg
-[clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-ldap
+[cov-img]: https://codecov.io/github/haraka/haraka-plugin-ldap/coverage.svg
+[cov-url]: https://codecov.io/github/haraka/haraka-plugin-ldap
+[qlty-img]: https://qlty.sh/gh/haraka/projects/haraka-plugin-ldap/maintainability.svg
+[qlty-url]: https://qlty.sh/gh/haraka/projects/haraka-plugin-ldap
