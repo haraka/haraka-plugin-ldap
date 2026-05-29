@@ -41,12 +41,12 @@
   "license": "MIT",
   "devDependencies": {
     "btoa": "^1.2.1",
-    "@haraka/eslint-config": "^2.0.4",
+    "@haraka/eslint-config": "^3.0.0",
     "haraka-test-fixtures": "^1.7.0"
   },
   "dependencies": {
-    "@haraka/email-address": "^3.1.4",
-    "haraka-constants": "^1.0.7",
+    "@haraka/email-address": "^3.1.5",
+    "haraka-constants": "^1.0.8",
     "ldapjs": "^3.0.7"
   },
   "prettier": {
